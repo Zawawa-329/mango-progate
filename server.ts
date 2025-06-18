@@ -2,6 +2,11 @@ import express, { Request, Response } from 'express'
 import path from 'path'
 import fs from 'fs'
 import initSqlJs, { Database, SqlJsStatic } from 'sql.js'
+import dotenv from 'dotenv'
+dotenv.config()
+
+const PORT = process.env.PORT || 3000
+
 
 // Database file path
 const DB_FILE = path.join(__dirname, 'data.db')
@@ -16,11 +21,11 @@ async function initDatabase() {
   } else {
     db = new SQL.Database()
     // Create tables
-    db.run(\`CREATE TABLE IF NOT EXISTS balances (
+    db.run(`CREATE TABLE IF NOT EXISTS balances (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       balance REAL NOT NULL,
       updated_at TEXT NOT NULL
-    );\`)
+    );`)
     db.run(`CREATE TABLE IF NOT EXISTS transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       type TEXT NOT NULL,
