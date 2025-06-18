@@ -81,5 +81,7 @@ $ git config --local core.hooksPath .githooks/
 
 ```bash
 git fetch origin
+git stash
 git merge origin/main
+git stash pop
 ```
