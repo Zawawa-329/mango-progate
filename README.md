@@ -118,6 +118,7 @@ $ code .
       npm install express sql.js ejs
       npm install --save-dev @types/express
       npm install dotenv
+      npx tsc
    ```
 4. .envファイルの作成
    プロジェクト直下に .env ファイルを作成し、以下を記述してください：
