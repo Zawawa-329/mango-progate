@@ -38,27 +38,44 @@ $ cd mango-progate
 $ git config --local core.hooksPath .githooks/ 
 ```
 
-2. `first-pull-request`というブランチを作り、そのブランチに**switch**します
+## VSCodeでプログラムを開く
+
+VSCodeを起動し、メニューバーから表示、コマンドパレットを選択
+`shell command`と入力し、`Shell Command: Install 'code' command in PATH`を選択
+完了したらターミナルを再起動
+
+```shell
+$ cd mango-progate
+$ code .
+```
+
+
+## Gitのプルリクエスト(PR)を使う
+
+基本自分の作業は、mainブランチにコミットする前にチームメイトに確認してもらう
+
+1. `(任意の名前)`というブランチを作り、そのブランチに**switch**します
    ```shell
    $ cd <your working space>/mango-progate
-   $ git branch first-pull-request
-   $ git switch first-pull-request
+   $ git branch pull-request
+   $ git switch pull-request
    ```
-3. README.md の中にある`@<your github id>` の部分をあなたのgithub idに書き換えてください
-4. 書き換えた内容を **commit**します
+   今回はpull-requestという名前とします
+
+2. 書き換えた内容を **commit**します
    ```shell
    $ git status # Check your change
    $ git add README.md # README.mdの変更をcommit対象にする
    $ git commit -m "Update github id" # どんな変更を加えたのかを伝えるコメント
    ```
-5. 変更内容をgithubに**push**します
+3. 変更内容をgithubに**push**します
    ```shell
-   $ git push origin first-pull-request:first-pull-request
+   $ git push origin pull-request:pull-request
    ```
-6. `https://github.com/<your github id>/mango-progate`を開き、**Pull Request**(PR)を作ります。
+4. `https://github.com/<your github id>/mango-progate`を開き、**Pull Request**(PR)を作ります。
     - base repository: `<your github id>/mango-progate`
     - base branch: `main`
-    - target branch: `first-pull-request`
+    - target branch: `pull-request`
 
 ## PRのレビューをする、PRのレビューをもらう
 - PRができたら、チームメイトにそのPRのURLを見てもらいます
@@ -73,6 +90,53 @@ $ git config --local core.hooksPath .githooks/
 
 ---
 
+# STEP2: npm
+1. nvmのインストール
+   ```shell
+      cd mango-progate
+      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+   ```
+   その後、以下を .zshrc または .bash_profile に追記して有効化（zsh を使っている場合）：
+   ```shell
+      export NVM_DIR="$HOME/.nvm"
+      source "$NVM_DIR/nvm.sh"
+      source ~/.zshrc  # または ~/.bash_profile
+   ```
+2. Node.jsのインストール
+   ```shell
+      nvm install --lts
+      nvm use --lts
+   ```
+   動作確認
+   ```shell
+      node -v
+      npm -v
+   ```
+3. TypeScript & ts-node のインストール
+   ```shell
+      npm install --save-dev typescript ts-node @types/node
+      npm install express sql.js ejs
+      npm install --save-dev @types/express
+      npm install dotenv
+   ```
+4. .envファイルの作成
+   プロジェクト直下に .env ファイルを作成し、以下を記述してください：
+   `PORT=3000`
+5. 依存パッケージのインストール
+   ```shell
+      npm install
+   ```
+
+# 実行方法
+
+```shell
+    cd mango-progate
+    npm run dev
+```
+`http://localhost:3000`に移動すると表示される
+
+---
+
 ## 最新の変更をpullする
 
 共同作業中、チームメイトの変更がコミットされたときに
@@ -81,5 +145,9 @@ $ git config --local core.hooksPath .githooks/
 
 ```bash
 git fetch origin
+git stash
 git merge origin/main
+git stash pop
 ```
+git stashとgit stash popは自身の作業中のものを一時保存して更新するもの
+一度mainブランチにmergeしてから行うのが理想
