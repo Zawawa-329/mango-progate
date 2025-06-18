@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>登録ページ</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header>
+      <h1>登録ページ</h1>
+      <nav>
+        <a href="/">トップ</a> |
+        <a href="/register">登録ページ</a>
+      </nav>
+    </header>
+    <main>
+      <section class="form-section">
+        <h2>口座残高登録</h2>
+        <form action="/register-balance" method="POST">
+          <input type="number" name="balance" placeholder="口座残高を入力" step="0.01" required>
+          <button type="submit">登録</button>
+        </form>
+      </section>
+      <section class="form-section">
+        <h2>支払い・引き落とし登録</h2>
+        <form action="/register-transaction" method="POST">
+          <label for="type">種類:</label>
+          <select name="type" id="type" required>
+            <option value="credit-card">クレジットカード</option>
+            <option value="recurring">定期支払い</option>
+          </select>
+          <br>
+          <label for="date">日付:</label>
+          <input type="date" name="date" id="date" required>
+          <br>
+          <label for="amount">金額:</label>
+          <input type="number" name="amount" placeholder="金額を入力" step="0.01" required>
+          <br>
+          <label for="description">説明:</label>
+          <input type="text" name="description" placeholder="説明（任意）">
+          <br>
+          <button type="submit">登録</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>
