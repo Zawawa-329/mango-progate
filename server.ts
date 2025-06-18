@@ -16,11 +16,11 @@ async function initDatabase() {
   } else {
     db = new SQL.Database()
     // Create tables
-    db.run(\`CREATE TABLE IF NOT EXISTS balances (
+    db.run(`CREATE TABLE IF NOT EXISTS balances (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       balance REAL NOT NULL,
       updated_at TEXT NOT NULL
-    );\`)
+    );`)
     db.run(`CREATE TABLE IF NOT EXISTS transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       type TEXT NOT NULL,
