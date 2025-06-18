@@ -78,13 +78,13 @@ $ git config --local core.hooksPath .githooks/
 
 ---
 
-**実行方法**
+## 実行方法
 
 ```shell
-   $ cd mango-progate
-   $ npm run dev
+    cd mango-progate
+    npm run dev
 ```
-http://localhost:3000　に移動すると表示される
+`http://localhost:3000`に移動すると表示される
 
 ---
 
