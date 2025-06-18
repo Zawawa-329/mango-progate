@@ -85,3 +85,5 @@ git stash
 git merge origin/main
 git stash pop
 ```
+git stashとgit stash popは自身の作業中のものを一時保存して更新するもの
+一度mainブランチにmergeしてから行うのが理想
