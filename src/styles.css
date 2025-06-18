@@ -1,0 +1,92 @@
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #f0f0f0;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+  background: #fff;
+}
+
+h1, h2, h3 {
+  text-align: center;
+}
+
+form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+input, button {
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+button {
+  cursor: pointer;
+}
+
+.balance-section, .transaction-section, .calendar-section {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 1rem;
+}
+
+.calendar {
+  margin-top: 1rem;
+}
+
+.calendar-header {
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+}
+
+.calendar-grid-header {
+  font-weight: bold;
+  text-align: center;
+  padding: 0.5rem 0;
+  background: #d0d0d0;
+}
+
+.calendar-cell {
+  min-height: 80px;
+  background: #eaeaea;
+  padding: 0.25rem;
+  border: 1px solid #ccc;
+  position: relative;
+}
+
+.calendar-cell.empty {
+  background: transparent;
+  border: none;
+}
+
+.date-number {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.transaction {
+  background: #fff;
+  margin-top: 1.5rem;
+  padding: 0.25rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  border: 1px solid #ccc;
+}
