@@ -38,6 +38,18 @@ $ cd mango-progate
 $ git config --local core.hooksPath .githooks/ 
 ```
 
+## VSCodeでプログラムを開く
+
+VSCodeを起動し、メニューバーから表示、コマンドパレットを選択
+`shell command`と入力し、`Shell Command: Install 'code' command in PATH`を選択
+完了したらターミナルを再起動
+
+```shell
+$ cd mango-progate
+$ code .
+```
+
+
 ## Gitのプルリクエスト(PR)を使う
 
 基本自分の作業は、mainブランチにコミットする前にチームメイトに確認してもらう
@@ -78,7 +90,40 @@ $ git config --local core.hooksPath .githooks/
 
 ---
 
-## 実行方法
+# STEP2: npm
+1. nvmのインストール
+   ```shell
+      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+   ```
+   その後、以下を .zshrc または .bash_profile に追記して有効化（zsh を使っている場合）：
+   ```shell
+      export NVM_DIR="$HOME/.nvm"
+      source "$NVM_DIR/nvm.sh"
+      source ~/.zshrc  # または ~/.bash_profile
+   ```
+2. Node.jsのインストール
+   ```shell
+      nvm install --lts
+      nvm use --lts
+   ```
+   動作確認
+   ```shell
+      node -v
+      npm -v
+   ```
+3. TypeScript & ts-node のインストール
+   ```shell
+      npm install --save-dev typescript ts-node @types/node
+      npm install express sql.js ejs
+      npm install --save-dev @types/express
+   ```
+5. 依存パッケージのインストール
+   ```shell
+      cd mango-progate
+      npm install
+   ```
+
+# 実行方法
 
 ```shell
     cd mango-progate
