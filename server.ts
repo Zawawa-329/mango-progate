@@ -2,6 +2,11 @@ import express, { Request, Response } from 'express'
 import path from 'path'
 import fs from 'fs'
 import initSqlJs, { Database, SqlJsStatic } from 'sql.js'
+import dotenv from 'dotenv'
+dotenv.config()
+
+const PORT = process.env.PORT || 3000
+
 
 // Database file path
 const DB_FILE = path.join(__dirname, 'data.db')
