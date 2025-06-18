@@ -1,0 +1,139 @@
+import express, { Request, Response } from 'express'
+import path from 'path'
+import fs from 'fs'
+import initSqlJs, { Database, SqlJsStatic } from 'sql.js'
+
+// Database file path
+const DB_FILE = path.join(__dirname, 'data.db')
+let db: Database
+
+// Initialize SQL.js and database
+async function initDatabase() {
+  const SQL: SqlJsStatic = await initSqlJs({ locateFile: file => `node_modules/sql.js/dist/${file}` })
+  if (fs.existsSync(DB_FILE)) {
+    const fileBuffer = fs.readFileSync(DB_FILE)
+    db = new SQL.Database(new Uint8Array(fileBuffer))
+  } else {
+    db = new SQL.Database()
+    // Create tables
+    db.run(\`CREATE TABLE IF NOT EXISTS balances (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      balance REAL NOT NULL,
+      updated_at TEXT NOT NULL
+    );\`)
+    db.run(\`CREATE TABLE IF NOT EXISTS transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      date TEXT NOT NULL,
+      amount REAL NOT NULL,
+      description TEXT
+    );\`)
+    saveDatabase()
+  }
+}
+
+function saveDatabase() {
+  const data = db.export()
+  fs.writeFileSync(DB_FILE, Buffer.from(data))
+}
+
+async function main() {
+  await initDatabase()
+  const app = express()
+  app.set('view engine', 'ejs')
+  app.set('views', path.join(__dirname, 'views'))
+  app.use(express.urlencoded({ extended: true }))
+  app.use(express.static(path.join(__dirname, 'public')))
+
+  // Top page: calendar view
+  app.get('/', (req: Request, res: Response) => {
+    // Get latest bank balance
+    const balanceStmt = db.prepare('SELECT * FROM balances ORDER BY updated_at DESC LIMIT 1;')
+    const balance = balanceStmt.getAsObject() as any
+    balanceStmt.free()
+
+    // Get all transactions
+    const transStmt = db.prepare('SELECT * FROM transactions ORDER BY date;')
+    const transactions: any[] = []
+    while (transStmt.step()) {
+      transactions.push(transStmt.getAsObject())
+    }
+    transStmt.free()
+
+    res.render('calendar', { balance, transactions, currentDate: new Date() })
+  })
+
+  // Registration page for balances and transactions
+  app.get('/register', (req: Request, res: Response) => {
+    res.render('register')
+  })
+
+  // Handle balance registration
+  app.post('/register-balance', (req: Request, res: Response) => {
+    const { balance } = req.body
+    const updatedAt = new Date().toISOString()
+    const stmt = db.prepare('INSERT INTO balances (balance, updated_at) VALUES (?, ?);')
+    stmt.bind([parseFloat(balance), updatedAt])
+    stmt.step()
+    stmt.free()
+    saveDatabase()
+    res.redirect('/register')
+  })
+
+  // Handle transaction registration
+  app.post('/register-transaction', (req: Request, res: Response) => {
+    const { type, date, amount, description } = req.body
+    const stmt = db.prepare('INSERT INTO transactions (type, date, amount, description) VALUES (?, ?, ?, ?);')
+    stmt.bind([type, date, parseFloat(amount), description])
+    stmt.step()
+    stmt.free()
+    saveDatabase()
+    res.redirect('/register')
+  })
+
+  // Edit transaction form
+  app.get('/edit-transaction/:id', (req: Request, res: Response) => {
+    const id = req.params.id
+    const stmt = db.prepare('SELECT * FROM transactions WHERE id = ?;')
+    stmt.bind([id])
+    let transaction: any = {}
+    if (stmt.step()) {
+      transaction = stmt.getAsObject()
+    }
+    stmt.free()
+    res.render('edit-transaction', { transaction })
+  })
+
+  // Handle transaction edit
+  app.post('/edit-transaction/:id', (req: Request, res: Response) => {
+    const id = req.params.id
+    const { type, date, amount, description } = req.body
+    const stmt = db.prepare('UPDATE transactions SET type = ?, date = ?, amount = ?, description = ? WHERE id = ?;')
+    stmt.bind([type, date, parseFloat(amount), description, id])
+    stmt.step()
+    stmt.free()
+    saveDatabase()
+    res.redirect('/')
+  })
+
+  // Delete transaction
+  app.get('/delete-transaction/:id', (req: Request, res: Response) => {
+    const id = req.params.id
+    const stmt = db.prepare('DELETE FROM transactions WHERE id = ?;')
+    stmt.bind([id])
+    stmt.step()
+    stmt.free()
+    saveDatabase()
+    res.redirect('/')
+  })
+
+  const PORT = process.env.PORT || 3000
+  app.listen(PORT, () => {
+    console.log(\`Server is running on http://localhost:\${PORT}\`)
+  })
+}
+
+main()
+  .catch(err => {
+    console.error(err)
+  })
