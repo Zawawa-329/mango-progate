@@ -21,13 +21,13 @@ async function initDatabase() {
       balance REAL NOT NULL,
       updated_at TEXT NOT NULL
     );\`)
-    db.run(\`CREATE TABLE IF NOT EXISTS transactions (
+    db.run(`CREATE TABLE IF NOT EXISTS transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       type TEXT NOT NULL,
       date TEXT NOT NULL,
       amount REAL NOT NULL,
       description TEXT
-    );\`)
+    );`)
     saveDatabase()
   }
 }
@@ -129,7 +129,7 @@ async function main() {
 
   const PORT = process.env.PORT || 3000
   app.listen(PORT, () => {
-    console.log(\`Server is running on http://localhost:\${PORT}\`)
+    console.log(`Server is running on http://localhost:${PORT}`)
   })
 }
 
