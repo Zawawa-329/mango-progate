@@ -38,27 +38,32 @@ $ cd mango-progate
 $ git config --local core.hooksPath .githooks/ 
 ```
 
-2. `first-pull-request`というブランチを作り、そのブランチに**switch**します
+## Gitのプルリクエスト(PR)を使う
+
+基本自分の作業は、mainブランチにコミットする前にチームメイトに確認してもらう
+
+1. `(任意の名前)`というブランチを作り、そのブランチに**switch**します
    ```shell
    $ cd <your working space>/mango-progate
-   $ git branch first-pull-request
-   $ git switch first-pull-request
+   $ git branch pull-request
+   $ git switch pull-request
    ```
-3. README.md の中にある`@<your github id>` の部分をあなたのgithub idに書き換えてください
-4. 書き換えた内容を **commit**します
+   今回はpull-requestという名前とします
+
+2. 書き換えた内容を **commit**します
    ```shell
    $ git status # Check your change
    $ git add README.md # README.mdの変更をcommit対象にする
    $ git commit -m "Update github id" # どんな変更を加えたのかを伝えるコメント
    ```
-5. 変更内容をgithubに**push**します
+3. 変更内容をgithubに**push**します
    ```shell
-   $ git push origin first-pull-request:first-pull-request
+   $ git push origin pull-request:pull-request
    ```
-6. `https://github.com/<your github id>/mango-progate`を開き、**Pull Request**(PR)を作ります。
+4. `https://github.com/<your github id>/mango-progate`を開き、**Pull Request**(PR)を作ります。
     - base repository: `<your github id>/mango-progate`
     - base branch: `main`
-    - target branch: `first-pull-request`
+    - target branch: `pull-request`
 
 ## PRのレビューをする、PRのレビューをもらう
 - PRができたら、チームメイトにそのPRのURLを見てもらいます
@@ -70,6 +75,16 @@ $ git config --local core.hooksPath .githooks/
 **:book: Reference**
 - [コードレビューの仕方](https://fujiharuka.github.io/google-eng-practices-ja/ja/review/reviewer/)
 
+
+---
+
+**実行方法**
+
+```shell
+   $ cd mango-progate
+   $ npm run dev
+```
+http://localhost:3000　に移動すると表示される
 
 ---
 
