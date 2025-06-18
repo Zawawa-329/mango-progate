@@ -93,6 +93,7 @@ $ code .
 # STEP2: npm
 1. nvmのインストール
    ```shell
+      cd mango-progate
       curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
    ```
    その後、以下を .zshrc または .bash_profile に追記して有効化（zsh を使っている場合）：
@@ -116,10 +117,13 @@ $ code .
       npm install --save-dev typescript ts-node @types/node
       npm install express sql.js ejs
       npm install --save-dev @types/express
+      npm install dotenv
    ```
+4. .envファイルの作成
+   プロジェクト直下に .env ファイルを作成し、以下を記述してください：
+   `PORT=3000`
 5. 依存パッケージのインストール
    ```shell
-      cd mango-progate
       npm install
    ```
 
