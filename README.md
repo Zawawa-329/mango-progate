@@ -29,6 +29,7 @@
    $ git clone https://github.com/<your github id>/mango-progate
    ```
    <>はなくてOK
+   "your github id" はさわちゃんのidにしましょう。
 
 **:bangbang: 注意**
 
