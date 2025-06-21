@@ -14,7 +14,7 @@
       </nav>
     </header>
     <main>
-      <form action="/edit-come/<%= comecome.id %>" method="POST">
+      <form action="/edit-comecome/<%= comecome.id %>" method="POST">
         <br>
         <label for="date">日付:</label>
         <input type="date" name="date" id="date" value="<%= comecome.date %>" required>
@@ -24,6 +24,7 @@
           <option value="credit-card" <%= comecome.type === 'credit-card' ? 'selected' : '' %>>お小遣い</option>
           <option value="recurring" <%= comecome.type === 'recurring' ? 'selected' : '' %>>バイト</option>
         </select>
+        <br>
         <label for="amount">金額:</label>
         <input type="number" name="amount" placeholder="金額を入力" step="0.01" value="<%= comecome.amount %>" required>
         <br>
