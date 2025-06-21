@@ -26,7 +26,14 @@ async function initDatabase() {
       balance REAL NOT NULL,
       updated_at TEXT NOT NULL
     );`)
-    db.run(`CREATE TABLE IF NOT EXISTS transactions (
+    db.run(`CREATE TABLE IF NOT EXISTS paypay (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      date TEXT NOT NULL,
+      amount REAL NOT NULL,
+      description TEXT
+    );`)
+    db.run(`CREATE TABLE IF NOT EXISTS comecome (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       type TEXT NOT NULL,
       date TEXT NOT NULL,
@@ -86,9 +93,19 @@ async function main() {
   })
 
   // Handle transaction registration
-  app.post('/register-transaction', (req: Request, res: Response) => {
+  app.post('/register-paypay', (req: Request, res: Response) => {
     const { type, date, amount, description } = req.body
-    const stmt = db.prepare('INSERT INTO transactions (type, date, amount, description) VALUES (?, ?, ?, ?);')
+    const stmt = db.prepare('INSERT INTO paypay (type, date, amount, description) VALUES (?, ?, ?, ?);')
+    stmt.bind([type, date, parseFloat(amount), description])
+    stmt.step()
+    stmt.free()
+    saveDatabase()
+    res.redirect('/register')
+  })
+
+  app.post('/register-comecome', (req: Request, res: Response) => {
+    const { type, date, amount, description } = req.body
+    const stmt = db.prepare('INSERT INTO comecome (type, date, amount, description) VALUES (?, ?, ?, ?);')
     stmt.bind([type, date, parseFloat(amount), description])
     stmt.step()
     stmt.free()
@@ -97,23 +114,46 @@ async function main() {
   })
 
   // Edit transaction form
-  app.get('/edit-transaction/:id', (req: Request, res: Response) => {
+  app.get('/edit-paypay/:id', (req: Request, res: Response) => {
     const id = req.params.id
-    const stmt = db.prepare('SELECT * FROM transactions WHERE id = ?;')
+    const stmt = db.prepare('SELECT * FROM paypay WHERE id = ?;')
     stmt.bind([id])
-    let transaction: any = {}
+    let paypay: any = {}
     if (stmt.step()) {
-      transaction = stmt.getAsObject()
+      paypay = stmt.getAsObject()
     }
     stmt.free()
-    res.render('edit-transaction', { transaction })
+    res.render('edit-paypay', { paypay })
+  })
+
+  app.get('/edit-comecome/:id', (req: Request, res: Response) => {
+    const id = req.params.id
+    const stmt = db.prepare('SELECT * FROM comecome WHERE id = ?;')
+    stmt.bind([id])
+    let comecome: any = {}
+    if (stmt.step()) {
+      comecome = stmt.getAsObject()
+    }
+    stmt.free()
+    res.render('edit-comecome', { comecome })
   })
 
   // Handle transaction edit
-  app.post('/edit-transaction/:id', (req: Request, res: Response) => {
+  app.post('/edit-paypay/:id', (req: Request, res: Response) => {
     const id = req.params.id
     const { type, date, amount, description } = req.body
-    const stmt = db.prepare('UPDATE transactions SET type = ?, date = ?, amount = ?, description = ? WHERE id = ?;')
+    const stmt = db.prepare('UPDATE paypay SET type = ?, date = ?, amount = ?, description = ? WHERE id = ?;')
+    stmt.bind([type, date, parseFloat(amount), description, id])
+    stmt.step()
+    stmt.free()
+    saveDatabase()
+    res.redirect('/')
+  })
+
+  app.post('/edit-comecome/:id', (req: Request, res: Response) => {
+    const id = req.params.id
+    const { type, date, amount, description } = req.body
+    const stmt = db.prepare('UPDATE comecome SET type = ?, date = ?, amount = ?, description = ? WHERE id = ?;')
     stmt.bind([type, date, parseFloat(amount), description, id])
     stmt.step()
     stmt.free()
@@ -122,9 +162,19 @@ async function main() {
   })
 
   // Delete transaction
-  app.get('/delete-transaction/:id', (req: Request, res: Response) => {
+  app.get('/delete-paypay/:id', (req: Request, res: Response) => {
     const id = req.params.id
-    const stmt = db.prepare('DELETE FROM transactions WHERE id = ?;')
+    const stmt = db.prepare('DELETE FROM paypay WHERE id = ?;')
+    stmt.bind([id])
+    stmt.step()
+    stmt.free()
+    saveDatabase()
+    res.redirect('/')
+  })
+
+  app.get('/delete-comecome/:id', (req: Request, res: Response) => {
+    const id = req.params.id
+    const stmt = db.prepare('DELETE FROM comecome WHERE id = ?;')
     stmt.bind([id])
     stmt.step()
     stmt.free()
