@@ -3,10 +3,15 @@ import path from 'path'
 import fs from 'fs'
 import initSqlJs, { Database, SqlJsStatic } from 'sql.js'
 import dotenv from 'dotenv'
+import OpenAI from "openai"
 dotenv.config()
 
 const PORT = process.env.PORT || 3000
 
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+})
 
 // Database file path
 const DB_FILE = path.join(__dirname, 'data.db')
@@ -58,7 +63,7 @@ async function main() {
   app.use(express.static(path.join(__dirname, 'public')))
 
   // Top page: calendar view
-  app.get('/', (req: Request, res: Response) => {
+  app.get('/', async (req: Request, res: Response) => {
     // Get latest bank balance
     const balanceStmt = db.prepare('SELECT * FROM balances ORDER BY updated_at DESC LIMIT 1;')
     const balance = balanceStmt.getAsObject() as any
@@ -81,7 +86,34 @@ async function main() {
     }
     comecomesStmt.free()
 
-    res.render('calendar', { balance, paypays, comecomes, currentDate: new Date() })
+    // --- AIアドバイス生成 ---
+    const paypayIncome = paypays.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0)
+    const paypayExpense = paypays.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0)
+    const comecomeIncome = comecomes.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0)
+    const comecomeExpense = comecomes.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0)
+    const totalIncome = paypayIncome + comecomeIncome
+    const totalExpense = paypayExpense + comecomeExpense
+
+    const prompt = `あなたは家計アドバイザーです。以下のデータを見て、貯金のための一言アドバイスを日本語でください。\n\n` +
+      `paypay収入: ${paypayIncome}円, paypay支出: ${paypayExpense}円\n` +
+      `comecome収入: ${comecomeIncome}円, comecome支出: ${comecomeExpense}円\n` +
+      `合計収入: ${totalIncome}円, 合計支出: ${totalExpense}円`;
+
+    let advice = ''
+    try {
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 60,
+        temperature: 0.7
+    })
+      advice = completion.data.choices[0].message?.content || ''
+    } catch (e) {
+      advice = 'AIアドバイスの取得に失敗しました。'
+    }
+    // --- ここまで ---
+
+    res.render('calendar', { balance, paypays, comecomes, currentDate: new Date(), advice })
   })
 
   // Registration page for balances and transactions
