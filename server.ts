@@ -65,14 +65,22 @@ async function main() {
     balanceStmt.free()
 
     // Get all transactions
-    const transStmt = db.prepare('SELECT * FROM transactions ORDER BY date;')
-    const transactions: any[] = []
-    while (transStmt.step()) {
-      transactions.push(transStmt.getAsObject())
+    const paypaysStmt = db.prepare('SELECT * FROM paypays ORDER BY date;')
+    const comecomeStmt = db.prepare('SELECT * FROM comecomes ORDER BY date;')
+    const paypays: any[] = []
+    const comecomes: any[] = []
+    
+    while (paypaysStmt.step()) {
+      paypays.push(paypaysStmt.getAsObject())
     }
-    transStmt.free()
+    paypaysStmt.free()
+    
+    while (comecomesStmt.step()) {
+      comecomes.push(comecomesStmt.getAsObject())
+    }
+    comecomesStmt.free()
 
-    res.render('calendar', { balance, transactions, currentDate: new Date() })
+    res.render('calendar', { balance, paypays, comecomes, currentDate: new Date() })
   })
 
   // Registration page for balances and transactions
