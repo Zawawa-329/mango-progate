@@ -40,17 +40,25 @@
               <div class="calendar-cell empty"></div>
             <% } else { 
                  const dateStr = new Date(year, month, dayCounter).toISOString().split('T')[0];
-                 const dayTransactions = transactions.filter(t => t.date === dateStr);
+                 const dayPaypays = paypays.filter(t => t.date === dateStr);
+                 const dayComecomes = comecomes.filter(t => t.date === dateStr);
             %>
               <div class="calendar-cell">
                 <div class="date-number"><%= dayCounter %></div>
-                <% dayTransactions.forEach(tx => { %>
+                <% dayPaypays.forEach(tx => { %>
                   <div class="transaction">
                     <span><%= tx.description || (tx.type === 'credit-card' ? 'クレジットカード' : '定期支払い') %></span>: <%= tx.amount %> 円
-                    [<a href="/edit-transaction/<%= tx.id %>">編集</a>]
-                    [<a href="/delete-transaction/<%= tx.id %>" onclick="return confirm('削除しますか？');">削除</a>]
+                    [<a href="/edit-paypay/<%= tx.id %>">編集</a>]
+                    [<a href="/delete-paypay/<%= tx.id %>" onclick="return confirm('削除しますか？');">削除</a>]
                   </div>
                 <% }) %>
+                <% dayComecomes.forEach(tx => { %>
+                  <div class="transaction">
+                    <span><%= tx.description || (tx.type === 'credit-card' ? 'クレジットカード' : '定期支払い') %></span>: <%= tx.amount %> 円
+                    [<a href="/edit-comecome/<%= tx.id %>">編集</a>]
+                    [<a href="/delete-comecome/<%= tx.id %>" onclick="return confirm('削除しますか？');">削除</a>]
+                  </div>
+                  <% }) %>
               </div>
               <% dayCounter++ %>
             <% } %>

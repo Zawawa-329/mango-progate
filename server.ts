@@ -65,8 +65,8 @@ async function main() {
     balanceStmt.free()
 
     // Get all transactions
-    const paypaysStmt = db.prepare('SELECT * FROM paypays ORDER BY date;')
-    const comecomesStmt = db.prepare('SELECT * FROM comecomes ORDER BY date;')
+    const paypaysStmt = db.prepare('SELECT * FROM paypay ORDER BY date;')
+    const comecomesStmt = db.prepare('SELECT * FROM comecome ORDER BY date;')
 
     const paypays: any[] = []
     const comecomes: any[] = []

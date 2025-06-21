@@ -24,6 +24,7 @@
           <option value="credit-card" <%= paypay.type === 'credit-card' ? 'selected' : '' %>>クレジットカード</option>
           <option value="recurring" <%= paypay.type === 'recurring' ? 'selected' : '' %>>定期支払い</option>
         </select>
+        <br>
         <label for="amount">金額:</label>
         <input type="number" name="amount" placeholder="金額を入力" step="0.01" value="<%= paypay.amount %>" required>
         <br>
