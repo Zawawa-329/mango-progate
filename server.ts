@@ -2,6 +2,7 @@
 import express, { Request, Response, NextFunction } from 'express'
 import session from 'express-session';
 import bcrypt from 'bcrypt';
+import multer from 'multer';
 // =====================================
 
 import path from 'path'
@@ -9,6 +10,22 @@ import fs from 'fs'
 import initSqlJs, { Database, SqlJsStatic } from 'sql.js'
 import dotenv from 'dotenv'
 dotenv.config()
+
+// ===== multerの設定: ファイルの保存場所とファイル名を定義 =====
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, 'public/uploads');
+    if (!fs.existsSync(uploadDir)){
+        fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage: storage });
+// ==========================================================
 
 // ===== TypeScriptの型定義 =====
 declare module 'express-session' {
@@ -36,8 +53,21 @@ async function initDatabase() {
 
     db.run(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL);`);
     db.run(`CREATE TABLE balances (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, balance REAL NOT NULL, updated_at TEXT NOT NULL, FOREIGN KEY (user_id) REFERENCES users (id));`);
-    db.run(`CREATE TABLE paypay (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, type TEXT NOT NULL, date TEXT NOT NULL, amount REAL NOT NULL, description TEXT, FOREIGN KEY (user_id) REFERENCES users (id));`);
-    db.run(`CREATE TABLE comecome (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, type TEXT NOT NULL, date TEXT NOT NULL, amount REAL NOT NULL, description TEXT, FOREIGN KEY (user_id) REFERENCES users (id));`);
+    
+    db.run(`
+      CREATE TABLE paypay (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, type TEXT NOT NULL, date TEXT NOT NULL, amount REAL NOT NULL, description TEXT,
+        photo_filename TEXT, latitude REAL, longitude REAL, location_name TEXT,
+        FOREIGN KEY (user_id) REFERENCES users (id)
+      );
+    `);
+    db.run(`
+      CREATE TABLE comecome (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, type TEXT NOT NULL, date TEXT NOT NULL, amount REAL NOT NULL, description TEXT,
+        photo_filename TEXT, latitude REAL, longitude REAL, location_name TEXT,
+        FOREIGN KEY (user_id) REFERENCES users (id)
+      );
+    `);
     
     saveDatabase()
     console.log("Tables created and database saved.");
@@ -57,18 +87,13 @@ async function main() {
   app.use(express.urlencoded({ extended: true }))
   app.use(express.static(path.join(__dirname, 'public')))
 
-  // ===== セッション機能の有効化 =====
   app.use(session({
     secret: process.env.SESSION_SECRET || 'your-default-secret-key-12345',
     resave: false,
     saveUninitialized: true,
-    cookie: {
-      secure: false, 
-      maxAge: 1000 * 60 * 60 * 24 
-    }
+    cookie: { secure: false, maxAge: 1000 * 60 * 60 * 24 }
   }));
 
-  // すべてのEJSテンプレートでユーザー情報を使えるようにするミドルウェア
   app.use((req: Request, res: Response, next) => {
     res.locals.user = req.session.user;
     next();
@@ -86,16 +111,13 @@ async function main() {
       stmt.run();
       stmt.free();
       saveDatabase();
-      res.redirect('/'); // ★ 変更: ログインページへ
+      res.redirect('/');
     } catch (error) {
       console.error("Signup Error:", error);
       res.redirect('/signup');
     }
   });
 
-  // ★ 変更: app.get('/login')は不要になったので削除し、app.get('/')がその役割を担う
-
-  // ログイン処理
   app.post('/login', async (req: Request, res: Response) => {
     const { email, password } = req.body;
     const stmt = db.prepare('SELECT * FROM users WHERE email = ?;');
@@ -106,49 +128,41 @@ async function main() {
       const isMatch = await bcrypt.compare(password, user.password_hash);
       if (isMatch) {
         req.session.user = { id: user.id, email: user.email };
-        return res.redirect('/dashboard'); // ★ 変更: ログイン後の遷移先を/dashboardに
+        return res.redirect('/dashboard');
       }
     }
     stmt.free();
-    res.redirect('/'); // ★ 変更: 失敗時はログインページ（ルート）へ
+    res.redirect('/');
   });
 
-  // ログアウト処理
   app.get('/logout', (req: Request, res: Response) => {
     req.session.destroy(err => {
       if (err) { console.error("Logout Error:", err); return res.redirect('/'); }
-      res.redirect('/'); // ★ 変更: ログアウト後はログインページ（ルート）へ
+      res.redirect('/');
     });
   });
 
-  // ===== 認証チェックミドルウェア =====
   const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-    if (req.session.user) {
-      return next();
-    }
-    res.redirect('/'); // ★ 変更: 未ログイン時はログインページ（ルート）へ
+    if (req.session.user) { return next(); }
+    res.redirect('/');
   };
 
   // ===== アプリケーションのメインルート =====
-
-  // ★ 変更: トップページ (/) はログイン画面に
   app.get('/', (req: Request, res: Response) => {
-    if (req.session.user) {
-      // もし既にログインしていたら、ダッシュボードにリダイレクト
-      return res.redirect('/dashboard');
-    }
-    // 未ログインなら、ログインページを表示
+    if (req.session.user) { return res.redirect('/dashboard'); }
     res.render('login');
   });
   
-  // ★ 新設: ログイン後のダッシュボード（カレンダーページ）
   app.get('/dashboard', isAuthenticated, (req: Request, res: Response) => {
     const userId = req.session.user!.id; 
+    const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear();
+    const month = req.query.month ? parseInt(req.query.month as string) : new Date().getMonth() + 1;
+    const currentDate = new Date(year, month - 1, 1);
+
     const balanceStmt = db.prepare('SELECT * FROM balances WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1;');
     balanceStmt.bind([userId]);
     const balance = balanceStmt.getAsObject() as any
     balanceStmt.free()
-
     const paypaysStmt = db.prepare('SELECT * FROM paypay WHERE user_id = ? ORDER BY date;');
     paypaysStmt.bind([userId]);
     const comecomesStmt = db.prepare('SELECT * FROM comecome WHERE user_id = ? ORDER BY date;');
@@ -159,16 +173,13 @@ async function main() {
     paypaysStmt.free()
     while (comecomesStmt.step()) { comecomes.push(comecomesStmt.getAsObject()) }
     comecomesStmt.free()
-
-    res.render('calendar', { balance, paypays, comecomes, currentDate: new Date() })
+    res.render('calendar', { balance, paypays, comecomes, currentDate })
   })
 
-  // Registration page
   app.get('/register', isAuthenticated, (req: Request, res: Response) => {
     res.render('register')
   })
 
-  // Handle balance registration
   app.post('/register-balance', isAuthenticated, (req: Request, res: Response) => {
     const userId = req.session.user!.id;
     const { balance } = req.body
@@ -181,30 +192,30 @@ async function main() {
     res.redirect('/register')
   })
 
-  // Handle transaction registration
-  app.post('/register-paypay', isAuthenticated, (req: Request, res: Response) => {
+  app.post('/register-paypay', isAuthenticated, upload.single('transactionPhoto'), (req: Request, res: Response) => {
     const userId = req.session.user!.id;
-    const { type, date, amount, description } = req.body
-    const stmt = db.prepare('INSERT INTO paypay (user_id, type, date, amount, description) VALUES (?, ?, ?, ?, ?);')
-    stmt.bind([userId, type, date, parseFloat(amount), description])
+    const { type, date, amount, description, latitude, longitude, locationName } = req.body;
+    const photoFilename = req.file ? req.file.filename : null;
+    const stmt = db.prepare('INSERT INTO paypay (user_id, type, date, amount, description, photo_filename, latitude, longitude, location_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);')
+    stmt.bind([userId, type, date, parseFloat(amount), description, photoFilename, parseFloat(latitude) || null, parseFloat(longitude) || null, locationName])
     stmt.step()
     stmt.free()
     saveDatabase()
     res.redirect('/register')
   })
 
-  app.post('/register-comecome', isAuthenticated, (req: Request, res: Response) => {
+  app.post('/register-comecome', isAuthenticated, upload.single('transactionPhoto'), (req: Request, res: Response) => {
     const userId = req.session.user!.id;
-    const { type, date, amount, description } = req.body
-    const stmt = db.prepare('INSERT INTO comecome (user_id, type, date, amount, description) VALUES (?, ?, ?, ?, ?);')
-    stmt.bind([userId, type, date, parseFloat(amount), description])
+    const { type, date, amount, description, latitude, longitude, locationName } = req.body;
+    const photoFilename = req.file ? req.file.filename : null;
+    const stmt = db.prepare('INSERT INTO comecome (user_id, type, date, amount, description, photo_filename, latitude, longitude, location_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);')
+    stmt.bind([userId, type, date, parseFloat(amount), description, photoFilename, parseFloat(latitude) || null, parseFloat(longitude) || null, locationName])
     stmt.step()
     stmt.free()
     saveDatabase()
     res.redirect('/register')
   })
 
-  // Edit transaction form
   app.get('/edit-paypay/:id', isAuthenticated, (req: Request, res: Response) => {
     const id = req.params.id
     const userId = req.session.user!.id;
@@ -227,32 +238,69 @@ async function main() {
     res.render('edit-comecome', { comecome })
   })
 
-  // Handle transaction edit
-  app.post('/edit-paypay/:id', isAuthenticated, (req: Request, res: Response) => {
-    const id = req.params.id
-    const userId = req.session.user!.id;
-    const { type, date, amount, description } = req.body
-    const stmt = db.prepare('UPDATE paypay SET type = ?, date = ?, amount = ?, description = ? WHERE id = ? AND user_id = ?;')
-    stmt.bind([type, date, parseFloat(amount), description, id, userId])
-    stmt.step()
-    stmt.free()
-    saveDatabase()
-    res.redirect('/dashboard') // ★ 変更: 完了後はダッシュボードへ
-  })
+  // =================================================================
+  // ===== ここからが今回の修正箇所 =====
+  // =================================================================
 
-  app.post('/edit-comecome/:id', isAuthenticated, (req: Request, res: Response) => {
-    const id = req.params.id
+  app.post('/edit-paypay/:id', isAuthenticated, upload.single('transactionPhoto'), async (req: Request, res: Response) => {
+    const id = req.params.id;
     const userId = req.session.user!.id;
-    const { type, date, amount, description } = req.body
-    const stmt = db.prepare('UPDATE comecome SET type = ?, date = ?, amount = ?, description = ? WHERE id = ? AND user_id = ?;')
-    stmt.bind([type, date, parseFloat(amount), description, id, userId])
-    stmt.step()
-    stmt.free()
-    saveDatabase()
-    res.redirect('/dashboard') // ★ 変更: 完了後はダッシュボードへ
-  })
+    const { type, date, amount, description, latitude, longitude, locationName } = req.body;
+    
+    const photoFilename = req.file ? req.file.filename : null;
+  
+    // SQL文を動的に構築
+    let sql = 'UPDATE paypay SET type = ?, date = ?, amount = ?, description = ?, latitude = ?, longitude = ?, location_name = ?';
+    const params: (string | number | null)[] = [type, date, parseFloat(amount), description, parseFloat(latitude) || null, parseFloat(longitude) || null, locationName];
+  
+    if (photoFilename) {
+      // 新しい写真がある場合のみ、photo_filenameを更新
+      sql += ', photo_filename = ?';
+      params.push(photoFilename);
+    }
+  
+    sql += ' WHERE id = ? AND user_id = ?;';
+    params.push(id, userId);
+  
+    const stmt = db.prepare(sql);
+    stmt.bind(params);
+    stmt.step();
+    stmt.free();
+    saveDatabase();
+    res.redirect('/dashboard');
+  });
+  
+  app.post('/edit-comecome/:id', isAuthenticated, upload.single('transactionPhoto'), async (req: Request, res: Response) => {
+    const id = req.params.id;
+    const userId = req.session.user!.id;
+    const { type, date, amount, description, latitude, longitude, locationName } = req.body;
+    
+    const photoFilename = req.file ? req.file.filename : null;
+  
+    let sql = 'UPDATE comecome SET type = ?, date = ?, amount = ?, description = ?, latitude = ?, longitude = ?, location_name = ?';
+    const params: (string | number | null)[] = [type, date, parseFloat(amount), description, parseFloat(latitude) || null, parseFloat(longitude) || null, locationName];
+  
+    if (photoFilename) {
+      sql += ', photo_filename = ?';
+      params.push(photoFilename);
+    }
+  
+    sql += ' WHERE id = ? AND user_id = ?;';
+    params.push(id, userId);
+  
+    const stmt = db.prepare(sql);
+    stmt.bind(params);
+    stmt.step();
+    stmt.free();
+    saveDatabase();
+    res.redirect('/dashboard');
+  });
 
-  // Delete transaction
+  // =================================================================
+  // ===== 修正箇所ここまで =====
+  // =================================================================
+
+
   app.get('/delete-paypay/:id', isAuthenticated, (req: Request, res: Response) => {
     const id = req.params.id
     const userId = req.session.user!.id;
@@ -261,7 +309,7 @@ async function main() {
     stmt.step()
     stmt.free()
     saveDatabase()
-    res.redirect('/dashboard') // ★ 変更: 完了後はダッシュボードへ
+    res.redirect('/dashboard')
   })
 
   app.get('/delete-comecome/:id', isAuthenticated, (req: Request, res: Response) => {
@@ -272,7 +320,7 @@ async function main() {
     stmt.step()
     stmt.free()
     saveDatabase()
-    res.redirect('/dashboard') // ★ 変更: 完了後はダッシュボードへ
+    res.redirect('/dashboard')
   })
 
   app.listen(PORT, () => {
