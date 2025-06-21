@@ -12,12 +12,39 @@
         <a href="/">トップ</a> |
         <a href="/register">登録ページ</a>
       </nav>
-      <% if (balance && balance.balance !== undefined) { %>
-        <p>最新の口座残高: <strong><%= balance.balance %></strong> 円（<%= new Date(balance.updated_at).toLocaleString() %> 登録）</p>
+      <% if (balance && typeof balance.balance !== 'undefined') { %>
+        <p style="font-weight:bold; color:#a68076; background:#fff3e6; border:2px solid #eac4af; border-radius:10px; display:inline-block; padding:0.5em 1.2em; margin-top:1em; margin-bottom:0; font-size:1.2em;">
+          現在の残高: <span style="color:#efc3c2;"><%= balance.balance %></span> 円
+          <span style="font-size:0.8em; color:#a68076;">（<%= new Date(balance.updated_at).toLocaleString() %> 時点）</span>
+        </p>
+      <% } else { %>
+        <p style="font-weight:bold; color:#a68076; background:#fff3e6; border:2px solid #eac4af; border-radius:10px; display:inline-block; padding:0.5em 1.2em; margin-top:1em; margin-bottom:0; font-size:1.2em;">
+          現在の残高は登録されていません
+        </p>
       <% } %>
     </header>
     <main>
       <section class="calendar-section">
+        <!-- 年月選択フォーム追加 -->
+        <form method="get" action="/calendar" style="margin-bottom: 1em; display: flex; gap: 1em; align-items: center;">
+          <label>
+            年
+            <select name="year">
+              <% for(let y = 2020; y <= 2030; y++) { %>
+                <option value="<%= y %>" <%= currentDate.getFullYear() === y ? 'selected' : '' %>><%= y %></option>
+              <% } %>
+            </select>
+          </label>
+          <label>
+            月
+            <select name="month">
+              <% for(let m = 1; m <= 12; m++) { %>
+                <option value="<%= m %>" <%= currentDate.getMonth() + 1 === m ? 'selected' : '' %>><%= m %></option>
+              <% } %>
+            </select>
+          </label>
+          <button type="submit">表示</button>
+        </form>
         <h2><%= currentDate.getFullYear() %>年 <%= currentDate.getMonth() + 1 %>月 のカレンダー</h2>
         <div class="calendar-grid">
           <% const daysOfWeek = ['日', '月', '火', '水', '木', '金', '土']; %>
