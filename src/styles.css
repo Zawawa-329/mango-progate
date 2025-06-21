@@ -90,3 +90,102 @@ button {
   font-size: 0.8rem;
   border: 1px solid #ccc;
 }
+
+/* public/styles.css */
+
+/* bodyとhtmlの初期設定 (必要であれば) */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+}
+
+/* mainタグにFlexboxを適用し、ヘッダー下の領域を管理 */
+main {
+    display: flex; /* Flexboxを使って子要素を横並びにする */
+    height: calc(100vh - 60px); /* ヘッダーの高さ分を引く (あなたのヘッダーの高さに合わせて調整してください) */
+    overflow: hidden; /* はみ出した内容を隠す */
+}
+
+/* 左側の地図コンテナ */
+#map-container {
+    flex: 3; /* mainの幅の3/4を占める */
+    height: 100%; /* 親 (main) の高さ全体を使う */
+    display: flex; /* 内部のH2と地図を縦に並べるため */
+    flex-direction: column;
+}
+
+#map-container h2 {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+/* 地図本体のdiv */
+#map {
+  height: 80vh; /* 地図の高さは必要 */
+  width: 100%;
+}
+
+/* 右側のランキングコンテナ */
+#ranking-container {
+    flex: 1; /* mainの幅の1/4を占める */
+    background-color: #f9f9f9; /* 背景色 */
+    padding: 15px;
+    box-sizing: border-box; /* paddingを幅に含める */
+    overflow-y: auto; /* ランキングが長い場合にスクロール可能にする */
+    border-left: 1px solid #ccc; /* 地図との境界線 */
+}
+
+#ranking-container h3 {
+    margin-top: 0;
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* ランキング個々のアイテムのスタイル */
+.ranking-item {
+    margin-bottom: 10px;
+    padding: 8px;
+    background-color: #fff;
+    border: 1px solid #eee;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between; /* 名前と金額を左右に配置 */
+    align-items: center;
+    font-size: 0.9em;
+}
+
+.ranking-item .place-name {
+    font-weight: bold;
+    color: #555;
+}
+
+.ranking-item .total-amount {
+    color: #d9534f; /* 支出なので赤色系 */
+    font-weight: bold;
+}
+
+/* オプション: ヘッダーの高さに合わせて main の calc() を調整 */
+header {
+    height: 60px; /* 例: ヘッダーの高さ */
+    background-color: #8b5cf6; /* 例: ヘッダーの背景色 */
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.5em;
+}
+
+header h1 a {
+    color: white;
+    text-decoration: none;
+}
+
+/* 既存のdropdown, balance-displayなどのスタイルもstyles.cssにあるはずです */
