@@ -46,6 +46,36 @@
           <button type="submit">表示</button>
         </form>
         <h2><%= currentDate.getFullYear() %>年 <%= currentDate.getMonth() + 1 %>月 のカレンダー</h2>
+        <% // 月ごとの収支計算 %>
+        <% 
+          const year = currentDate.getFullYear();
+          const month = currentDate.getMonth();
+          function isThisMonth(dateStr) {
+            const d = new Date(dateStr);
+            return d.getFullYear() === year && d.getMonth() === month;
+          }
+          function isIncome(t) {
+            const val = (t.type || '').toString().trim();
+            return val.includes('収入') || val.includes('入金') || val.toLowerCase().includes('income');
+          }
+          function isExpense(t) {
+            const val = (t.type || '').toString().trim();
+            return val.includes('支出') || val.includes('出金') || val.toLowerCase().includes('expense');
+          }
+          const monthPaypays = paypays.filter(t => isThisMonth(t.date));
+          const monthComecomes = comecomes.filter(t => isThisMonth(t.date));
+          const incomeSum = monthPaypays.filter(isIncome).reduce((sum, t) => sum + Number(t.amount), 0) +
+                            monthComecomes.filter(isIncome).reduce((sum, t) => sum + Number(t.amount), 0);
+          const expenseSum = monthPaypays.filter(isExpense).reduce((sum, t) => sum + Number(t.amount), 0) +
+                             monthComecomes.filter(isExpense).reduce((sum, t) => sum + Number(t.amount), 0);
+          const diff = incomeSum - expenseSum;
+          const diffColor = diff >= 0 ? '#b7d7c6' : '#efc3c2';
+        %>
+        <div style="margin-bottom:1em; padding:0.7em 1.5em; background:#f8ede3; border-radius:12px; border:1.5px solid #eac4af; display:inline-block; font-size:1.1em; color:#a68076;">
+          <span style="margin-right:1.5em;">収入合計: <span style="color:#b7d7c6; font-weight:bold; font-size:1.1em;"><%= incomeSum %></span> 円</span>
+          <span style="margin-right:1.5em;">支出合計: <span style="color:#efc3c2; font-weight:bold; font-size:1.1em;"><%= expenseSum %></span> 円</span>
+          <span>差額: <span <%= 'style="color:' + diffColor + '; font-weight:bold; font-size:1.1em;"' %>><%= diff %></span> 円</span>
+        </div>
         <div class="calendar-grid">
           <% const daysOfWeek = ['日', '月', '火', '水', '木', '金', '土']; %>
           <% daysOfWeek.forEach(day => { %>
@@ -53,8 +83,6 @@
           <% }) %>
           <% 
              // Generate days for current month
-             const year = currentDate.getFullYear();
-             const month = currentDate.getMonth();
              const firstDay = new Date(year, month, 1);
              const lastDay = new Date(year, month + 1, 0);
              const numDays = lastDay.getDate();
