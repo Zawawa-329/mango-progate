@@ -173,7 +173,26 @@ async function main() {
     paypaysStmt.free()
     while (comecomesStmt.step()) { comecomes.push(comecomesStmt.getAsObject()) }
     comecomesStmt.free()
-    res.render('calendar', { balance, paypays, comecomes, currentDate })
+
+    const yearMonth = `${year}-${String(month).padStart(2, '0')}`;
+
+// 金額合計を計算（部分一致でその月のデータに限定）
+    const sumPaypayStmt = db.prepare(`
+      SELECT SUM(amount) AS total FROM paypay
+      WHERE user_id = ? AND date LIKE ?;
+    `);
+    sumPaypayStmt.bind([userId, `${yearMonth}%`]);
+    const totalPaypay = sumPaypayStmt.step() ? sumPaypayStmt.getAsObject().total : 0;
+    sumPaypayStmt.free();
+
+    const sumComecomeStmt = db.prepare(`
+      SELECT SUM(amount) AS total FROM comecome
+      WHERE user_id = ? AND date LIKE ?;  
+    `);
+    sumComecomeStmt.bind([userId, `${yearMonth}%`]);
+    const totalComecome = sumComecomeStmt.step() ? sumComecomeStmt.getAsObject().total : 0;
+    sumComecomeStmt.free();
+    res.render('calendar', { balance, paypays, comecomes, currentDate,totalPaypay,  totalComecome })
   })
 
   app.get('/register', isAuthenticated, (req: Request, res: Response) => {
