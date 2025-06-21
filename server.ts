@@ -159,10 +159,13 @@ async function main() {
     const month = req.query.month ? parseInt(req.query.month as string) : new Date().getMonth() + 1;
     const currentDate = new Date(year, month - 1, 1);
 
-    const balanceStmt = db.prepare('SELECT * FROM balances WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1;');
-    balanceStmt.bind([userId]);
-    const balance = balanceStmt.getAsObject() as any
-    balanceStmt.free()
+    let balance: any = null;
+  const balanceStmt = db.prepare('SELECT * FROM balances WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1;');
+  balanceStmt.bind([userId]);
+  if (balanceStmt.step()) {
+    balance = balanceStmt.getAsObject();
+  }
+  balanceStmt.free();
     const paypaysStmt = db.prepare('SELECT * FROM paypay WHERE user_id = ? ORDER BY date;');
     paypaysStmt.bind([userId]);
     const comecomesStmt = db.prepare('SELECT * FROM comecome WHERE user_id = ? ORDER BY date;');
@@ -195,9 +198,14 @@ async function main() {
     res.render('calendar', { balance, paypays, comecomes, currentDate,totalPaypay,  totalComecome })
   })
 
-  app.get('/register', isAuthenticated, (req: Request, res: Response) => {
-    res.render('register')
-  })
+app.get('/register', isAuthenticated, (req: Request, res: Response) => {
+  const userId = req.session.user!.id;
+  const stmt = db.prepare('SELECT * FROM balances WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1;');
+  stmt.bind([userId]);
+  const balance = stmt.step() ? stmt.getAsObject() : null;
+  stmt.free();
+  res.render('register', { balance });
+});
 
   app.post('/register-balance', isAuthenticated, (req: Request, res: Response) => {
     const userId = req.session.user!.id;
