@@ -255,7 +255,7 @@ async function main() {
     if (!isNaN(income) && !isNaN(expense)) {
       aiComment = await getAIComment(income, expense);
 }
-    res.render('calendar', { balance, paypays, comecomes, currentDate,totalPaypay,  totalComecome })
+    res.render('calendar', { balance, paypays, comecomes, currentDate,totalPaypay,  totalComecome,aiComment })
   })
 
 app.get('/register', isAuthenticated, (req: Request, res: Response) => {

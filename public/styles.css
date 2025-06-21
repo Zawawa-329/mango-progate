@@ -289,3 +289,31 @@ h2 {
   height: 80vh; /* 画面の高さの80% */
   width: 100%;
 }
+
+.ai-comment {
+  margin: 2em auto;
+  max-width: 600px;
+  background: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 12px;
+  padding: 1.5em 2em;
+  color: #28a745;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+.ai-comment h3 {
+  margin-top: 0;
+  color: #28a745;
+  font-size: 1.4em;
+  border-bottom: 1px solid #28a745;
+  padding-bottom: 0.3em;
+  margin-bottom: 0.8em;
+}
+
+.ai-comment p {
+  font-size: 1.1em;
+  line-height: 1.6;
+}
+
