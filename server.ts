@@ -3,6 +3,7 @@ import express, { Request, Response, NextFunction } from 'express'
 import session from 'express-session';
 import bcrypt from 'bcrypt';
 import multer from 'multer';
+import OpenAI from 'openai';
 // =====================================
 
 import path from 'path'
@@ -26,6 +27,24 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 // ==========================================================
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// async function getAIComment(income: number, expense: number): Promise<string> {
+//   const prompt = `
+// あなたは家計のアドバイザーです。今月の収入は${income}円、支出は${expense}円です。
+// 収支のバランスや節約のポイント、改善点などを踏まえて、ユーザーにわかりやすく具体的なアドバイスを一言で伝えてください。
+// `;
+//   const completion = await openai.chat.completions.create({
+//     messages: [{ role: 'user', content: prompt }],
+//     model: 'gpt-4o',
+//     max_tokens: 100,
+//   });
+//   return completion.choices[0].message.content || 'コメントが取得できませんでした。';
+// }
+
+async function getAIComment(income: number, expense: number): Promise<string> {
+  return Promise.resolve("これはテスト用のコメントです。API制限が解除されたら実際のコメントを取得します。");
+}
 
 // ===== TypeScriptの型定義 =====
 declare module 'express-session' {
@@ -168,7 +187,7 @@ async function main() {
     res.render('login');
   });
   
-  app.get('/dashboard', isAuthenticated, (req: Request, res: Response) => {
+  app.get('/dashboard', isAuthenticated, async (req: Request, res: Response) => {
     const userId = req.session.user!.id; 
     const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear();
     const month = req.query.month ? parseInt(req.query.month as string) : new Date().getMonth() + 1;
@@ -220,7 +239,21 @@ async function main() {
     sumComecomeStmt.bind([userId, `${yearMonth}%`]);
     const totalComecome = sumComecomeStmt.step() ? sumComecomeStmt.getAsObject().total : 0;
     sumComecomeStmt.free();
-    res.render('calendar', { balance, paypays, comecomes, currentDate,totalPaypay,  totalComecome })
+
+    const rawIncome = totalComecome;
+    const rawExpense = totalPaypay;
+
+    // 明示的に number 型に変換（null や undefined の場合は 0 にする）
+    const income = typeof rawIncome === 'number' ? rawIncome : Number(rawIncome) || 0;
+    const expense = typeof rawExpense === 'number' ? rawExpense : Number(rawExpense) || 0;
+
+    let aiComment = '';
+
+    if (!isNaN(income) && !isNaN(expense)) {
+      aiComment = await getAIComment(income, expense);
+    }  
+
+    res.render('calendar', { balance, paypays, comecomes, currentDate,totalPaypay,  totalComecome ,aiComment})
   })
 
 app.get('/register', isAuthenticated, (req: Request, res: Response) => {
