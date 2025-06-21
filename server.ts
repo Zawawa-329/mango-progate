@@ -3,10 +3,7 @@ import express, { Request, Response, NextFunction } from 'express'
 import session from 'express-session';
 import bcrypt from 'bcrypt';
 import multer from 'multer';
-<<<<<<< HEAD
-=======
 import OpenAI from 'openai';
->>>>>>> d28db15 (tsconfig.json server.ts)
 // =====================================
 
 import path from 'path'
@@ -31,8 +28,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 // ==========================================================
 
-<<<<<<< HEAD
-=======
 
 // const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -54,7 +49,6 @@ async function getAIComment(income: number, expense: number): Promise<string> {
   return Promise.resolve("これはテスト用のコメントです。API制限が解除されたら実際のコメントを取得します。");
 }
 
->>>>>>> d28db15 (tsconfig.json server.ts)
 // ===== TypeScriptの型定義 =====
 declare module 'express-session' {
   interface SessionData {
@@ -196,11 +190,7 @@ async function main() {
     res.render('login');
   });
   
-<<<<<<< HEAD
-  app.get('/dashboard', isAuthenticated, (req: Request, res: Response) => {
-=======
   app.get('/dashboard', isAuthenticated, async (req: Request, res: Response) => {
->>>>>>> d28db15 (tsconfig.json server.ts)
     const userId = req.session.user!.id; 
     const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear();
     const month = req.query.month ? parseInt(req.query.month as string) : new Date().getMonth() + 1;
@@ -252,8 +242,6 @@ async function main() {
     sumComecomeStmt.bind([userId, `${yearMonth}%`]);
     const totalComecome = sumComecomeStmt.step() ? sumComecomeStmt.getAsObject().total : 0;
     sumComecomeStmt.free();
-<<<<<<< HEAD
-=======
 
     const rawIncome = totalComecome;
     const rawExpense = totalPaypay;
@@ -267,7 +255,6 @@ async function main() {
     if (!isNaN(income) && !isNaN(expense)) {
       aiComment = await getAIComment(income, expense);
 }
->>>>>>> d28db15 (tsconfig.json server.ts)
     res.render('calendar', { balance, paypays, comecomes, currentDate,totalPaypay,  totalComecome })
   })
 
