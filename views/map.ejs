@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>場所の地図</title>
+  
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCcNQibIa4J9Nc3aK_ZjCyPblBNYgFAUbM&callback=initMap"></script>
+  
+  <link rel="stylesheet" href="/styles.css"/>
+
+  <style>
+    /* bodyとhtmlの高さを100%にする */
+    body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: Arial, sans-serif;
+    }
+
+    /* main要素にFlexboxを適用し、ヘッダー下の残りの高さを占める */
+    /* headerの高さに合わせて calc() の値を調整してください (例: headerの高さが60pxなら - 60px) */
+    main {
+        display: flex; /* Flexboxを使って子要素を横並びにする（単一の地図コンテナが全幅を占めるため） */
+        height: calc(100vh - 60px); 
+        overflow: hidden; /* はみ出した内容を隠す */
+        margin-top: 0; /* mainがheaderのすぐ下にくるように */
+    }
+
+    /* 地図コンテナがmainの全幅と高さを占める */
+    #map-container {
+        flex: 1; /* mainの全幅を占める (単一のflexアイテムとして) */
+        height: 100%; /* 親 (main) の高さ全体を使う */
+        display: flex; /* h2と地図を縦に並べるため */
+        flex-direction: column;
+    }
+
+    #map-container h2 {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    /* 地図本体のdiv */
+    #map {
+        height: 100%; /* 親コンテナ (map-container) の残りの高さ全体を使う */
+        width: 100%;
+    }
+
+    /* ランキングコンテナは不要なため、CSS定義も削除 */
+    /* もしHTMLに残り、非表示にしたい場合は以下を追加: */
+    #ranking-container {
+      display: none; 
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="/dashboard">Limit Kakeibo</a></h1>
+    <nav>
+      <% if (user) { %>
+        <div class="dropdown">
+          <button class="dropdown-toggle">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 8px;"><path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z" fill="white"/></svg>
+            <span><%= user.email %></span>
+          </button>
+          <div class="dropdown-content">
+            <a href="/dashboard">カレンダーに戻る</a> <!-— ★★★ この行を追加 ★★★ -->
+            <a href="/register">登録ページへ</a>
+            <a href="/logout">ログアウト</a>
+          </div>
+        </div>
+      <% } %>
+    </nav>
+  </header>
+
+  <main>
+    <div id="map-container">
+      <h2>支出マップ</h2>
+      <div id="map"></div>
+    </div>
+    </main>
+
+  <script>
+    let map; // Google Mapオブジェクトをグローバルに定義
+
+    // 地図の初期化関数 (Google Maps APIのcallbackで呼び出される)
+    function initMap() {
+      // 地図の初期化と中心座標、ズームレベルの設定
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: 35.681236, lng: 139.767125 }, // 例: 東京駅周辺の緯度経度
+        zoom: 13,
+      });
+
+      const transactions = <%- JSON.stringify(transactions) %>;
+      
+      transactions.forEach(tx => {
+        // 支出の取引であるか、かつ緯度と経度が存在する場合のみマーカーを追加
+        const isExpense = tx.type.includes('支出') || tx.type.includes('expense') || tx.type.includes('サブスク') || tx.type.includes('単発');
+
+        if (isExpense && tx.latitude && tx.longitude) {
+          const marker = new google.maps.Marker({
+            position: { lat: tx.latitude, lng: tx.longitude },
+            map: map,
+            title: tx.location_name || '場所不明'
+          });
+
+          // 情報ウィンドウのコンテンツ
+          const displayAmount = tx.type.includes('支出') || tx.type.includes('expense') ? `－${tx.amount.toLocaleString()} 円` : `${tx.amount.toLocaleString()} 円`;
+
+          const infoWindowContent = `
+            <div>
+              <h3>${tx.location_name || '場所不明'}</h3>
+              <p>${tx.description || tx.type}: ${displayAmount}</p>
+            </div>
+          `;
+          const infoWindow = new google.maps.InfoWindow({
+            content: infoWindowContent
+          });
+
+          // マーカーをクリックしたときに情報ウィンドウを表示
+          marker.addListener('click', () => {
+            infoWindow.open(map, marker);
+          });
+        }
+      });
+    } // End of initMap function
+
+    // ドロップダウンメニューのJavaScript (既存のものをコピー)
+    const dropdownToggle = document.querySelector('.dropdown-toggle');
+    const dropdownContent = document.querySelector('.dropdown-content');
+    if (dropdownToggle && dropdownContent) {
+        dropdownToggle.addEventListener('click', function(event) {
+        dropdownContent.classList.toggle('show');
+        event.stopPropagation(); 
+        });
+        window.addEventListener('click', function(event) {
+        if (dropdownContent.classList.contains('show')) {
+            dropdownContent.classList.remove('show');
+        }
+        });
+    }
+  </script>
+</body>
+</html>

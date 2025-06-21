@@ -4,89 +4,54 @@
   <meta charset="UTF-8" />
   <title>カレンダー表示</title>
   <link rel="stylesheet" href="/styles.css" />
-  <style>
-    .transaction-photo {
-      max-width: 100px;
-      max-height: 100px;
-      display: block;
-      margin-top: 5px;
-      margin-bottom: 5px;
-      border-radius: 4px;
-      border: 1px solid #ddd;
-    }
-    .transaction-location {
-      font-size: 0.9em;
-      color: #666;
-      margin-top: 4px;
-    }
-    .transaction-location::before {
-      content: '📍';
-      margin-right: 4px;
-    }
-  </style>
 </head>
 <body>
   <header>
-    <h1><a href="/dashboard">📅 My 家計簿カレンダー</a></h1>
+    <h1><a href="/dashboard">Limit Kakeibo</a></h1>
     <nav>
       <% if (user) { %>
-        <span>こんにちは, <%= user.email %> さん</span> |
-        <a href="/register">登録ページへ</a> |
-        <a href="/map">地図で見る</a> |
-        <a href="/logout">ログアウト</a>
+        <div class="dropdown">
+          <button class="dropdown-toggle">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 8px;"><path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z" fill="white"/></svg>
+            <span><%= user.email %></span>
+          </button>
+          <div class="dropdown-content">
+            <a href="/register">登録ページへ</a>
+            <a href="/map">地図で見る</a>
+            <a href="/logout">ログアウト</a>
+          </div>
+        </div>
       <% } %>
     </nav>
-    <% if (balance && typeof balance.balance !=='undefined') { %>
-      <p style="font-weight:bold; color:#a68076; background:#fff3e6; border:2px solid #eac4af; border-radius:10px; display:inline-block; padding:0.5em 1.2em; margin-top:1em; margin-bottom:0; font-size:1.2em;">
-        現在の残高: <span style="color:#efc3c2;"><%= balance.balance %></span> 円
-        <span style="font-size:0.8em; color:#a68076;">（<%= new Date(balance.updated_at).toLocaleString() %> 時点）</span>
-      </p>
-    <% } else { %>
-      <p style="font-weight:bold; color:#a68076; background:#fff3e6; border:2px solid #eac4af; border-radius:10px; display:inline-block; padding:0.5em 1.2em; margin-top:1em; margin-bottom:0; font-size:1.2em;">
+    <p class="balance-display">
+      <% if (balance && typeof balance.balance !== 'undefined') { %>
+        現在の残高: <span class="amount"><%= balance.balance %></span> 円
+        <span class="date">（<%= new Date(balance.updated_at).toLocaleString() %> 時点）</span>
+      <% } else { %>
         現在の残高は登録されていません
-      </p>
-    <% } %>
+      <% } %>
+    </p>
   </header>
 
   <main>
     <%
-      function normalizeDate(d) {
-        const dt = new Date(d);
-        const yyyy = dt.getFullYear();
-        const mm = ('0' + (dt.getMonth() + 1)).slice(-2);
-        const dd = ('0' + dt.getDate()).slice(-2);
-        return `${yyyy}-${mm}-${dd}`;
-      }
-
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
+      
+      const allTransactions = [...paypays, ...comecomes];
 
-      function isThisMonth(dateStr) {
-        const d = new Date(dateStr);
-        return d.getFullYear() === year && d.getMonth() === month;
-      }
-
-      function isIncome(t) {
-        const val = (t.type || '').toString().trim().toLowerCase();
-        return val.includes('収入') || val.includes('入金') || val.includes('income');
-      }
-
-      function isExpense(t) {
-        const val = (t.type || '').toString().trim().toLowerCase();
-        return val.includes('支出') || val.includes('出金') || val.includes('expense');
-      }
-
-      const monthPaypays = paypays.filter(t => isThisMonth(t.date));
-      const monthComecomes = comecomes.filter(t => isThisMonth(t.date));
-
-      const incomeSum = [...monthPaypays, ...monthComecomes].filter(isIncome).reduce((sum, t) => sum + Number(t.amount), 0);
-      const expenseSum = [...monthPaypays, ...monthComecomes].filter(isExpense).reduce((sum, t) => sum + Number(t.amount), 0);
+      function isThisMonth(dateStr) { const d = new Date(dateStr); return d.getFullYear() === year && d.getMonth() === month; }
+      function isIncome(t) { return t.type.includes('収入') || t.type.includes('入金') || t.type.includes('income') || t.type.includes('お小遣い') || t.type.includes('バイト'); }
+      function isExpense(t) { return t.type.includes('支出') || t.type.includes('出金') || t.type.includes('expense') || t.type.includes('サブスク') || t.type.includes('単発'); }
+      
+      const monthTransactions = allTransactions.filter(t => isThisMonth(t.date));
+      const incomeSum = monthTransactions.filter(isIncome).reduce((sum, t) => sum + Number(t.amount), 0);
+      const expenseSum = monthTransactions.filter(isExpense).reduce((sum, t) => sum + Number(t.amount), 0);
       const diff = incomeSum - expenseSum;
-      const diffColor = diff >= 0 ? '#b7d7c6' : '#efc3c2';
     %>
 
     <section class="calendar-section">
-      <form method="get" action="/dashboard" style="margin-bottom: 1em; display: flex; gap: 1em; align-items: center;">
+      <form method="get" action="/dashboard">
         <label>年
           <select name="year">
             <% for(let y=2020; y<=2030; y++) { %>
@@ -106,10 +71,10 @@
 
       <h2><%= year %>年 <%= month + 1 %>月 のカレンダー</h2>
 
-      <div style="margin-bottom:1em; padding:0.7em 1.5em; background:#f8ede3; border-radius:12px; border:1.5px solid #eac4af; display:inline-block; font-size:1.1em; color:#a68076;">
-        <span style="margin-right:1.5em;">収入合計: <span style="color:#b7d7c6; font-weight:bold;"><%= incomeSum %></span> 円</span>
-        <span style="margin-right:1.5em;">支出合計: <span style="color:#efc3c2; font-weight:bold;"><%= expenseSum %></span> 円</span>
-        <span>差額: <span style="color:<%= diffColor %>; font-weight:bold;"><%= diff %></span> 円</span>
+      <div class="monthly-summary">
+        <span style="margin-right:1.5em;">収入合計: <span class="amount income"><%= incomeSum %></span> 円</span>
+        <span style="margin-right:1.5em;">支出合計: <span class="amount expense"><%= expenseSum %></span> 円</span>
+        <span>差額: <span class="amount <%= diff >= 0 ? 'positive-diff' : 'negative-diff' %>"><%= diff %></span> 円</span>
       </div>
 
       <div class="calendar-grid">
@@ -131,17 +96,17 @@
           <% if (i < startWeekday || dayCounter > numDays) { %>
             <div class="calendar-cell empty"></div>
           <% } else {
-              const dateStr = new Date(year, month, dayCounter).toISOString().split('T')[0];
-              const dayPaypays = paypays.filter(t => normalizeDate(t.date) === dateStr);
-              const dayComecomes = comecomes.filter(t => normalizeDate(t.date) === dateStr);
-              const incomeTotal = [...dayPaypays, ...dayComecomes].filter(isIncome).reduce((sum, t) => sum + Number(t.amount), 0);
-              const expenseTotal = [...dayPaypays, ...dayComecomes].filter(isExpense).reduce((sum, t) => sum + Number(t.amount), 0);
+              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayCounter).padStart(2, '0')}`;
+              const dayTransactions = allTransactions.filter(t => t.date && t.date.startsWith(dateStr));
+              
+              const incomeTotal = dayTransactions.filter(isIncome).reduce((sum, t) => sum + Number(t.amount), 0);
+              const expenseTotal = dayTransactions.filter(isExpense).reduce((sum, t) => sum + Number(t.amount), 0);
           %>
-            <div class="calendar-cell">
+            <div class="calendar-cell" data-date="<%= dateStr %>">
               <div class="date-number"><%= dayCounter %></div>
               <div class="daily-summary">
-                <div class="income">＋<%= incomeTotal %> 円</div>
-                <div class="expense">－<%= expenseTotal %> 円</div>
+                <% if(incomeTotal > 0) { %><div class="income">＋<%= incomeTotal %>円</div><% } %>
+                <% if(expenseTotal > 0) { %><div class="expense">－<%= expenseTotal %>円</div><% } %>
               </div>
             </div>
           <% dayCounter++; } %>
@@ -149,5 +114,98 @@
       </div>
     </section>
   </main>
+  <div id="details-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-box">
+      <button id="modal-close-btn" class="modal-close-btn">&times;</button>
+      <h3 id="modal-date"></h3>
+      <div id="modal-content">
+        </div>
+    </div>
+  </div>
+    <script>
+    const dropdownToggle = document.querySelector('.dropdown-toggle');
+    const dropdownContent = document.querySelector('.dropdown-content');
+    if (dropdownToggle && dropdownContent) {
+        dropdownToggle.addEventListener('click', function(event) {
+        dropdownContent.classList.toggle('show');
+        event.stopPropagation(); 
+        });
+        window.addEventListener('click', function(event) {
+        if (dropdownContent.classList.contains('show')) {
+            dropdownContent.classList.remove('show');
+        }
+        });
+    }
+  </script>
+  <script>
+    // ページ上のすべての取引データを取得
+    // server.tsの修正により、各取引にsource_tableプロパティが含まれるようになりました。
+    const allTransactionsForModal = <%- JSON.stringify([...paypays, ...comecomes]) %>;
+
+    // 必要なHTML要素を取得
+    const modal = document.getElementById('details-modal');
+    const modalDate = document.getElementById('modal-date');
+    const modalContent = document.getElementById('modal-content');
+    const closeModalBtn = document.getElementById('modal-close-btn');
+    const dayCells = document.querySelectorAll('.calendar-cell');
+
+    // 各日付セルにクリックイベントを設定
+    dayCells.forEach(cell => {
+      cell.addEventListener('click', () => {
+        const dateStr = cell.dataset.date; // クリックされた日付 (e.g., "2025-06-22")
+        
+        // その日の取引だけをフィルタリング
+        const dailyTransactions = allTransactionsForModal.filter(t => t.date && t.date.startsWith(dateStr));
+
+        // モーダルの日付タイトルを設定
+        modalDate.textContent = `${new Date(dateStr).toLocaleDateString()} の取引詳細`;
+
+        // モーダルの内容を生成
+        modalContent.innerHTML = ''; // 一旦空にする
+        if (dailyTransactions.length > 0) {
+          dailyTransactions.forEach(tx => {
+            const isExpense = tx.type.includes('支出') || tx.type.includes('expense') || tx.type.includes('サブスク') || tx.type.includes('単発');
+            const displaySign = isExpense ? '－' : '＋';
+            const displayAmount = Number(tx.amount).toLocaleString(); // 金額をカンマ区切りでフォーマット
+
+            const transactionHtml = `
+              <div class="modal-transaction">
+                <div class="modal-transaction-header">
+                  <span>${tx.description || tx.type}</span>
+                  <span>${displaySign}${displayAmount} 円</span>
+                </div>
+                <div class="modal-transaction-body">
+                  ${tx.photo_filename ? `<img src="/uploads/${tx.photo_filename}" class="modal-transaction-photo">` : ''}
+                  <div>
+                    ${tx.location_name ? `<p class="transaction-location">📍${tx.location_name}</p>` : ''}
+                    <a href="/${tx.source_table === 'paypay' ? 'edit-paypay' : 'edit-comecome'}/${tx.id}">この取引を編集</a>
+                  </div>
+                </div>
+              </div>
+            `;
+            modalContent.innerHTML += transactionHtml;
+          });
+        } else {
+          modalContent.innerHTML = '<p>この日の取引はありません。</p>';
+        }
+
+        // モーダルを表示
+        modal.style.display = 'flex';
+      });
+    });
+
+    // モーダルを閉じる処理
+    function closeModal() {
+      modal.style.display = 'none';
+    }
+
+    closeModalBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (event) => {
+      // 背景の黒い部分をクリックしたときだけ閉じる
+      if (event.target === modal) {
+        closeModal();
+      }
+    });
+  </script>
 </body>
 </html>
