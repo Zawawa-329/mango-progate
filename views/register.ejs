@@ -1,63 +1,117 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <title>登録ページ</title>
     <link rel="stylesheet" href="/styles-register.css">
-  </head>
-  <body>
+    <style>
+      /* Map container */
+      .map-container {
+        position: relative;
+        margin-top: 1em;
+        margin-bottom: 1em;
+      }
+      .map {
+        height: 300px;
+        width: 100%;
+        border: 1px solid #ccc;
+      }
+      /* Google Maps search box */
+      .pac-input {
+        width: 90%;
+        padding: 8px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        margin-bottom: 10px;
+      }
+    </style>
+</head>
+<body>
     <header>
       <h1>登録ページ</h1>
       <nav>
-        <a href="/">トップ</a> |
-        <a href="/register">登録ページ</a>
+        <% if (user) { %>
+            <a href="/dashboard">カレンダーに戻る</a> |
+            <a href="/logout">ログアウト</a>
+        <% } %>
       </nav>
     </header>
     <main>
       <section class="form-section">
         <h2>収入登録</h2>
-        <form action="/register-comecome" method="POST">
+        <form action="/register-comecome" method="POST" enctype="multipart/form-data">
+          <label for="comecome-date">日付:</label>
+          <input type="date" name="date" id="comecome-date" required>
           <br>
-          <label for="date">日付:</label>
-          <input type="date" name="date" id="date" required>
-          <br>
-          <label for="type">収入の形:</label>
-          <select name="type" id="type" required>
-            <option value="okodukai">お小遣い</option>
-            <option value="bite">バイト</option>
+          <label for="comecome-type">収入の形:</label>
+          <select name="type" id="comecome-type" required>
+            <option value="お小遣い">お小遣い</option>
+            <option value="バイト">バイト</option>
+            <option value="収入">その他収入</option>
           </select>
           <br>
-          <label for="amount">金額:</label>
+          <label for="comecome-amount">金額:</label>
           <input type="number" name="amount" placeholder="金額を入力" step="1" required>
           <br>
-          <label for="description">説明:</label>
+          <label for="comecome-description">説明:</label>
           <input type="text" name="description" placeholder="説明（任意）">
+          <br>
+          <div>
+            <label for="comecome-photo">関連写真:</label>
+            <input type="file" id="comecome-photo" name="transactionPhoto" accept="image/*">
+          </div>
+          <br>
+          <label>場所（任意）:</label>
+          <div class="map-container">
+            <input id="pac-input-comecome" class="pac-input" type="text" placeholder="場所を検索" />
+            <div id="map-comecome" class="map"></div>
+          </div>
+          <input type="hidden" id="latitude-comecome" name="latitude">
+          <input type="hidden" id="longitude-comecome" name="longitude">
+          <input type="hidden" id="location_name-comecome" name="locationName">
           <br>
           <button type="submit">登録</button>
         </form>
       </section>
+
       <section class="form-section">
         <h2>支出を登録</h2>
-        <form action="/register-paypay" method="POST">
-          <br>
-          <label for="date">日付:</label>
-          <input type="date" name="date" id="date" required>
-          <br>
-          <label for="type">支出の形:</label>
-          <select name="type" id="type" required>
-            <option value="subusuku">サブスク</option>
-            <option value="once">単発</option>
-          </select>
-          <br>
-          <label for="amount">金額:</label>
-          <input type="number" name="amount" placeholder="金額を入力" step="1" required>
-          <br>
-          <label for="description">説明:</label>
-          <input type="text" name="description" placeholder="説明（任意）">
-          <br>
-          <button type="submit">登録</button>
+        <form action="/register-paypay" method="POST" enctype="multipart/form-data">
+            <label for="paypay-date">日付:</label>
+            <input type="date" name="date" id="paypay-date" required>
+            <br>
+            <label for="paypay-type">支出の形:</label>
+            <select name="type" id="paypay-type" required>
+              <option value="サブスク">サブスク</option>
+              <option value="単発">単発</option>
+              <option value="支出">その他支出</option>
+            </select>
+            <br>
+            <label for="paypay-amount">金額:</label>
+            <input type="number" name="amount" placeholder="金額を入力" step="1" required>
+            <br>
+            <label for="paypay-description">説明:</label>
+            <input type="text" name="description" placeholder="説明（任意）">
+            <br>
+            <div>
+              <label for="paypay-photo">関連写真:</label>
+              <input type="file" id="paypay-photo" name="transactionPhoto" accept="image/*">
+            </div>
+            <br>
+            <label>場所（任意）:</label>
+            <div class="map-container">
+              <input id="pac-input-paypay" class="pac-input" type="text" placeholder="場所を検索" />
+              <div id="map-paypay" class="map"></div>
+            </div>
+            <input type="hidden" id="latitude-paypay" name="latitude">
+            <input type="hidden" id="longitude-paypay" name="longitude">
+            <input type="hidden" id="location_name-paypay" name="locationName">
+            <br>
+            <button type="submit">登録</button>
         </form>
       </section>
+
       <section class="form-section">
         <h2>口座残高登録</h2>
         <form action="/register-balance" method="POST">
@@ -66,6 +120,72 @@
         </form>
       </section>
     </main>
-  </body>
-</html>
 
+    <script>
+      // 2つのフォームそれぞれに地図をセットアップする関数
+      function setupMap(mapId, inputId, latId, lngId, nameId) {
+        const tokyoStation = { lat: 35.681236, lng: 139.767125 };
+        const mapElement = document.getElementById(mapId);
+        const inputElement = document.getElementById(inputId);
+        const latElement = document.getElementById(latId);
+        const lngElement = document.getElementById(lngId);
+        const nameElement = document.getElementById(nameId);
+
+        const map = new google.maps.Map(mapElement, {
+          center: tokyoStation,
+          zoom: 15,
+        });
+
+        const searchBox = new google.maps.places.SearchBox(inputElement);
+        let marker = null;
+
+        // 地図が動いたときに検索ボックスの候補を更新
+        map.addListener("bounds_changed", () => {
+          searchBox.setBounds(map.getBounds());
+        });
+
+        // 検索ボックスで場所を選択したときの処理
+        searchBox.addListener("places_changed", () => {
+          const places = searchBox.getPlaces();
+          if (places.length == 0) return;
+          
+          const place = places[0];
+          updateLocation(place.geometry.location, place.name);
+          
+          map.setCenter(place.geometry.location);
+          map.setZoom(17);
+        });
+        
+        // 地図をクリックしたときの処理
+        map.addListener("click", (e) => {
+          updateLocation(e.latLng, "選択した地点");
+        });
+
+        // ピンを立てて隠しフィールドを更新する共通関数
+        function updateLocation(location, name) {
+          // 既存のマーカーがあれば削除
+          if (marker) {
+            marker.setMap(null);
+          }
+          // 新しいマーカーを作成
+          marker = new google.maps.Marker({
+            position: location,
+            map: map,
+          });
+          // 隠しフィールドに緯度・経度・名前をセット
+          latElement.value = location.lat();
+          lngElement.value = location.lng();
+          nameElement.value = name;
+        }
+      }
+
+      // Google Maps APIが読み込まれたら、2つの地図を初期化する
+      function initMaps() {
+        setupMap("map-comecome", "pac-input-comecome", "latitude-comecome", "longitude-comecome", "location_name-comecome");
+        setupMap("map-paypay", "pac-input-paypay", "latitude-paypay", "longitude-paypay", "location_name-paypay");
+      }
+    </script>
+    
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCcNQibIa4J9Nc3aK_ZjCyPblBNYgFAUbM&libraries=places&callback=initMaps" async defer></script>
+    </body>
+</html>

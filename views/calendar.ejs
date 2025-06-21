@@ -4,6 +4,26 @@
     <meta charset="UTF-8" />
     <title>カレンダー表示</title>
     <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .transaction-photo {
+        max-width: 100px;
+        max-height: 100px;
+        display: block;
+        margin-top: 5px;
+        margin-bottom: 5px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+      }
+      .transaction-location {
+        font-size: 0.9em;
+        color: #666;
+        margin-top: 4px;
+      }
+      .transaction-location::before {
+        content: '📍'; /* 地図の絵文字 */
+        margin-right: 4px;
+      }
+    </style>
   </head>
   <body>
     <header>
@@ -14,6 +34,7 @@
             |
             <a href="/register">登録ページへ</a>
             |
+            <a href="/map">地図で見る</a> |
             <a href="/logout">ログアウト</a>
         <% } %>
       </nav>
@@ -31,46 +52,25 @@
     <main>
       <section class="calendar-section">
         <form method="get" action="/dashboard" style="margin-bottom: 1em; display: flex; gap: 1em; align-items: center;">
-          <label>
-            年
-            <select name="year">
-              <% for(let y = 2020; y <= 2030; y++) { %>
-                <option value="<%= y %>" <%= currentDate.getFullYear() === y ? 'selected' : '' %>><%= y %></option>
-              <% } %>
-            </select>
-          </label>
-          <label>
-            月
-            <select name="month">
-              <% for(let m = 1; m <= 12; m++) { %>
-                <option value="<%= m %>" <%= currentDate.getMonth() + 1 === m ? 'selected' : '' %>><%= m %></option>
-              <% } %>
-            </select>
-          </label>
+          <label>年 <select name="year">
+              <% for(let y = 2020; y <= 2030; y++) { %><option value="<%= y %>" <%= currentDate.getFullYear() === y ? 'selected' : '' %>><%= y %></option><% } %>
+            </select></label>
+          <label>月 <select name="month">
+              <% for(let m = 1; m <= 12; m++) { %><option value="<%= m %>" <%= currentDate.getMonth() + 1 === m ? 'selected' : '' %>><%= m %></option><% } %>
+            </select></label>
           <button type="submit">表示</button>
         </form>
         <h2><%= currentDate.getFullYear() %>年 <%= currentDate.getMonth() + 1 %>月 のカレンダー</h2>
         <% 
           const year = currentDate.getFullYear();
           const month = currentDate.getMonth();
-          function isThisMonth(dateStr) {
-            const d = new Date(dateStr);
-            return d.getFullYear() === year && d.getMonth() === month;
-          }
-          function isIncome(t) {
-            const val = (t.type || '').toString().trim();
-            return val.includes('収入') || val.includes('入金') || val.toLowerCase().includes('income');
-          }
-          function isExpense(t) {
-            const val = (t.type || '').toString().trim();
-            return val.includes('支出') || val.includes('出金') || val.toLowerCase().includes('expense');
-          }
+          function isThisMonth(dateStr) { const d = new Date(dateStr); return d.getFullYear() === year && d.getMonth() === month; }
+          function isIncome(t) { const val = (t.type || '').toString().trim(); return val.includes('収入') || val.includes('入金') || val.toLowerCase().includes('income'); }
+          function isExpense(t) { const val = (t.type || '').toString().trim(); return val.includes('支出') || val.includes('出金') || val.toLowerCase().includes('expense'); }
           const monthPaypays = paypays.filter(t => isThisMonth(t.date));
           const monthComecomes = comecomes.filter(t => isThisMonth(t.date));
-          const incomeSum = monthPaypays.filter(isIncome).reduce((sum, t) => sum + Number(t.amount), 0) +
-                            monthComecomes.filter(isIncome).reduce((sum, t) => sum + Number(t.amount), 0);
-          const expenseSum = monthPaypays.filter(isExpense).reduce((sum, t) => sum + Number(t.amount), 0) +
-                             monthComecomes.filter(isExpense).reduce((sum, t) => sum + Number(t.amount), 0);
+          const incomeSum = monthPaypays.filter(isIncome).reduce((sum, t) => sum + Number(t.amount), 0) + monthComecomes.filter(isIncome).reduce((sum, t) => sum + Number(t.amount), 0);
+          const expenseSum = monthPaypays.filter(isExpense).reduce((sum, t) => sum + Number(t.amount), 0) + monthComecomes.filter(isExpense).reduce((sum, t) => sum + Number(t.amount), 0);
           const diff = incomeSum - expenseSum;
           const diffColor = diff >= 0 ? '#b7d7c6' : '#efc3c2';
         %>
@@ -79,11 +79,10 @@
           <span style="margin-right:1.5em;">支出合計: <span style="color:#efc3c2; font-weight:bold; font-size:1.1em;"><%= expenseSum %></span> 円</span>
           <span>差額: <span <%= 'style="color:' + diffColor + '; font-weight:bold; font-size:1.1em;"' %>><%= diff %></span> 円</span>
         </div>
+
         <div class="calendar-grid">
           <% const daysOfWeek = ['日', '月', '火', '水', '木', '金', '土']; %>
-          <% daysOfWeek.forEach(day => { %>
-            <div class="calendar-cell header"><%= day %></div>
-          <% }) %>
+          <% daysOfWeek.forEach(day => { %><div class="calendar-cell header"><%= day %></div><% }) %>
           <% 
              const firstDay = new Date(year, month, 1);
              const lastDay = new Date(year, month + 1, 0);
@@ -102,18 +101,36 @@
             %>
               <div class="calendar-cell">
                 <div class="date-number"><%= dayCounter %></div>
+                
                 <% dayPaypays.forEach(tx => { %>
                   <div class="transaction">
-                    <span><%= tx.description || (tx.type === 'credit-card' ? 'クレジットカード' : '定期支払い') %></span>: <%= tx.amount %> 円
-                    [<a href="/edit-paypay/<%= tx.id %>">編集</a>]
-                    [<a href="/delete-paypay/<%= tx.id %>" onclick="return confirm('削除しますか？');">削除</a>]
+                    <% if (tx.photo_filename) { %>
+                      <img src="/uploads/<%= tx.photo_filename %>" alt="取引の写真" class="transaction-photo">
+                    <% } %>
+                    <span><%= tx.description || tx.type %></span>: <%= tx.amount %> 円
+                    <% if (tx.location_name) { %>
+                      <div class="transaction-location"><%= tx.location_name %></div>
+                    <% } %>
+                    <div>
+                      [<a href="/edit-paypay/<%= tx.id %>">編集</a>]
+                      [<a href="/delete-paypay/<%= tx.id %>" onclick="return confirm('削除しますか？');">削除</a>]
+                    </div>
                   </div>
                 <% }) %>
+
                 <% dayComecomes.forEach(tx => { %>
                   <div class="transaction">
-                    <span><%= tx.description || (tx.type === 'credit-card' ? 'クレジットカード' : '定期支払い') %></span>: <%= tx.amount %> 円
-                    [<a href="/edit-comecome/<%= tx.id %>">編集</a>]
-                    [<a href="/delete-comecome/<%= tx.id %>" onclick="return confirm('削除しますか？');">削除</a>]
+                    <% if (tx.photo_filename) { %>
+                      <img src="/uploads/<%= tx.photo_filename %>" alt="取引の写真" class="transaction-photo">
+                    <% } %>
+                    <span><%= tx.description || tx.type %></span>: <%= tx.amount %> 円
+                     <% if (tx.location_name) { %>
+                      <div class="transaction-location"><%= tx.location_name %></div>
+                    <% } %>
+                    <div>
+                      [<a href="/edit-comecome/<%= tx.id %>">編集</a>]
+                      [<a href="/delete-comecome/<%= tx.id %>" onclick="return confirm('削除しますか？');">削除</a>]
+                    </div>
                   </div>
                   <% }) %>
               </div>
