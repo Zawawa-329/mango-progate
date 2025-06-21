@@ -33,6 +33,21 @@ declare module 'express-session' {
     user?: { id: number; email: string; };
   }
 }
+
+// ===== 取引データの型定義（任意だが推奨） =====
+interface Transaction {
+  id: number;
+  user_id: number;
+  type: string;
+  date: string;
+  amount: number;
+  description?: string;
+  photo_filename?: string;
+  latitude?: number;
+  longitude?: number;
+  location_name?: string;
+  source_table?: 'paypay' | 'comecome'; // ★★★ 追加: どのテーブルから来たかを示すプロパティ ★★★
+}
 // =====================================
 
 const PORT = process.env.PORT || 3000
@@ -159,24 +174,37 @@ async function main() {
     const month = req.query.month ? parseInt(req.query.month as string) : new Date().getMonth() + 1;
     const currentDate = new Date(year, month - 1, 1);
 
+    let balance: any = null;
     const balanceStmt = db.prepare('SELECT * FROM balances WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1;');
     balanceStmt.bind([userId]);
-    const balance = balanceStmt.getAsObject() as any
-    balanceStmt.free()
+    if (balanceStmt.step()) {
+      balance = balanceStmt.getAsObject();
+    }
+    balanceStmt.free();
+    
     const paypaysStmt = db.prepare('SELECT * FROM paypay WHERE user_id = ? ORDER BY date;');
     paypaysStmt.bind([userId]);
     const comecomesStmt = db.prepare('SELECT * FROM comecome WHERE user_id = ? ORDER BY date;');
     comecomesStmt.bind([userId]);
-    const paypays: any[] = [];
-    const comecomes: any[] = [];
-    while (paypaysStmt.step()) { paypays.push(paypaysStmt.getAsObject()) }
+    
+    const paypays: Transaction[] = []; 
+    const comecomes: Transaction[] = []; 
+    
+    while (paypaysStmt.step()) { 
+      const tx = paypaysStmt.getAsObject() as Transaction; 
+      paypays.push({ ...tx, source_table: 'paypay' }); // ★★★ 修正箇所: ここを追加 ★★★
+    }
     paypaysStmt.free()
-    while (comecomesStmt.step()) { comecomes.push(comecomesStmt.getAsObject()) }
+    
+    while (comecomesStmt.step()) { 
+      const tx = comecomesStmt.getAsObject() as Transaction; 
+      comecomes.push({ ...tx, source_table: 'comecome' }); // ★★★ 修正箇所: ここを追加 ★★★
+    }
     comecomesStmt.free()
 
     const yearMonth = `${year}-${String(month).padStart(2, '0')}`;
 
-// 金額合計を計算（部分一致でその月のデータに限定）
+    // 金額合計を計算（部分一致でその月のデータに限定）
     const sumPaypayStmt = db.prepare(`
       SELECT SUM(amount) AS total FROM paypay
       WHERE user_id = ? AND date LIKE ?;
@@ -195,9 +223,14 @@ async function main() {
     res.render('calendar', { balance, paypays, comecomes, currentDate,totalPaypay,  totalComecome })
   })
 
-  app.get('/register', isAuthenticated, (req: Request, res: Response) => {
-    res.render('register')
-  })
+app.get('/register', isAuthenticated, (req: Request, res: Response) => {
+  const userId = req.session.user!.id;
+  const stmt = db.prepare('SELECT * FROM balances WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1;');
+  stmt.bind([userId]);
+  const balance = stmt.step() ? stmt.getAsObject() : null;
+  stmt.free();
+  res.render('register', { balance });
+});
 
   app.post('/register-balance', isAuthenticated, (req: Request, res: Response) => {
     const userId = req.session.user!.id;
@@ -257,10 +290,6 @@ async function main() {
     res.render('edit-comecome', { comecome })
   })
 
-  // =================================================================
-  // ===== ここからが今回の修正箇所 =====
-  // =================================================================
-
   app.post('/edit-paypay/:id', isAuthenticated, upload.single('transactionPhoto'), async (req: Request, res: Response) => {
     const id = req.params.id;
     const userId = req.session.user!.id;
@@ -315,11 +344,6 @@ async function main() {
     res.redirect('/dashboard');
   });
 
-  // =================================================================
-  // ===== 修正箇所ここまで =====
-  // =================================================================
-
-
   app.get('/delete-paypay/:id', isAuthenticated, (req: Request, res: Response) => {
     const id = req.params.id
     const userId = req.session.user!.id;
@@ -341,6 +365,46 @@ async function main() {
     saveDatabase()
     res.redirect('/dashboard')
   })
+
+  // ★★★ 追加する /map ルート ★★★
+  app.get('/map', isAuthenticated, async (req: Request, res: Response) => {
+    const userId = req.session.user!.id;
+    try {
+      // paypayとcomecomeのデータを取得
+      const paypaysStmt = db.prepare(`
+        SELECT id, amount, type, description, location_name, latitude, longitude, date
+        FROM paypay WHERE user_id = ?;
+      `);
+      paypaysStmt.bind([userId]);
+      const paypays: Transaction[] = [];
+      while (paypaysStmt.step()) {
+        const tx = paypaysStmt.getAsObject() as Transaction;
+        paypays.push({ ...tx, source_table: 'paypay' }); // ★★★ 修正箇所: ここを追加 ★★★
+      }
+      paypaysStmt.free();
+
+      const comecomesStmt = db.prepare(`
+        SELECT id, amount, type, description, location_name, latitude, longitude, date
+        FROM comecome WHERE user_id = ?;
+      `);
+      comecomesStmt.bind([userId]);
+      const comecomes: Transaction[] = [];
+      while (comecomesStmt.step()) {
+        const tx = comecomesStmt.getAsObject() as Transaction;
+        comecomes.push({ ...tx, source_table: 'comecome' }); // ★★★ 修正箇所: ここを追加 ★★★
+      }
+      comecomesStmt.free();
+
+      const allTransactions = [...paypays, ...comecomes];
+
+      res.render('map', { user: req.session.user, transactions: allTransactions });
+
+    } catch (error) {
+      console.error('Error fetching transactions for map:', error);
+      res.status(500).send('地図データを取得できませんでした。');
+    }
+  });
+
 
   app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`)

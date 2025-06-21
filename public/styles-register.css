@@ -81,3 +81,26 @@ input, select, button {
   padding: 0.3rem;
   border-radius: 3px;
 }
+
+button {
+  background-color: #88c9a1; /* 落ち着いたグリーン */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+button:hover {
+  background-color: #72b38c; /* 少し濃いめでホバー感 */
+  transform: scale(1.02);
+}
+
+button:active {
+  background-color: #5b9673; /* 押下時の濃い緑 */
+  transform: scale(0.98);
+}
