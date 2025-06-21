@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>支出編集</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header>
+      <h1>支出編集</h1>
+      <nav>
+        <a href="/">トップ</a> |
+        <a href="/register">登録ページ</a>
+      </nav>
+    </header>
+    <main>
+      <form action="/edit-paypay/<%= paypay.id %>" method="POST">
+        <br>
+        <label for="date">日付:</label>
+        <input type="date" name="date" id="date" value="<%= paypay.date %>" required>
+        <br>
+        <label for="type">種類:</label>
+        <select name="type" id="type" required>
+          <option value="credit-card" <%= paypay.type === 'credit-card' ? 'selected' : '' %>>クレジットカード</option>
+          <option value="recurring" <%= paypay.type === 'recurring' ? 'selected' : '' %>>定期支払い</option>
+        </select>
+        <label for="amount">金額:</label>
+        <input type="number" name="amount" placeholder="金額を入力" step="0.01" value="<%= paypay.amount %>" required>
+        <br>
+        <label for="description">説明:</label>
+        <input type="text" name="description" placeholder="説明" value="<%= paypay.description %>">
+        <br>
+        <button type="submit">更新</button>
+      </form>
+    </main>
+  </body>
+</html>
