@@ -80,3 +80,26 @@ body {
     padding: 0.3rem;
     border-radius: 3px;
   }  
+
+  button.red {
+  background-color: #a83232;        /* 濃い赤 */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+button.red:hover {
+  background-color: #d14e4e;        /* 少し明るい赤 */
+  transform: scale(1.02);
+}
+
+button.red:active {
+  background-color: #7a2929;        /* 押下時の暗い赤 */
+  transform: scale(0.98);
+}
