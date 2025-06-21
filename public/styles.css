@@ -195,3 +195,18 @@ input, select, button {
   color: #a68076;
   box-shadow: 0 1px 6px #eac4af22;
 }
+.daily-summary {
+  font-size: 0.75em;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.daily-summary .income {
+  color: #2a8;
+  font-weight: bold;
+}
+
+.daily-summary .expense {
+  color: #e44;
+  font-weight: bold;
+}
