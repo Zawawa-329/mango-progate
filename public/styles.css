@@ -115,9 +115,9 @@ h2 {
 }
 .monthly-summary .amount { font-size: 1.1em; }
 .monthly-summary .income { color: #c8f5d8; }
-.monthly-summary .expense { color: #f5c8d8; }
+.monthly-summary .expense { color: #f44884; }
 .monthly-summary .positive-diff { color: #c8f5d8; }
-.monthly-summary .negative-diff { color: #f5c8d8; }
+.monthly-summary .negative-diff { color: #f44884; }
 
 
 /* カレンダーの年月選択フォーム (四角) */
@@ -346,13 +346,13 @@ h2 {
 }
 
 .top-nav a {
-  color: #228B22;
+  color: white;
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 .top-nav a {
-  color: #228B22; /* 例：残高の色 */
+  color:white; /* 例：残高の色 */
   text-decoration: none;
   transition: color 0.3s ease, transform 0.3s ease;
   display: inline-block; /* transformを効かせるためにinline-block推奨 */
