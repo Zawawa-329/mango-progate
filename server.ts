@@ -29,25 +29,25 @@ const upload = multer({ storage: storage });
 // ==========================================================
 
 
-// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// async function getAIComment(income: number, expense: number): Promise<string> {
-//   const prompt = `
-// あなたは家計のアドバイザーです。今月の収入は${income}円、支出は${expense}円です。
-// 収支のバランスや節約のポイント、改善点などを踏まえて、ユーザーにわかりやすく具体的なアドバイスを一言で伝えてください。
-// `;
-//   const completion = await openai.chat.completions.create({
-//     messages: [{ role: 'user', content: prompt }],
-//     model: 'gpt-4o',
-//     max_tokens: 100,
-//   });
-//   return completion.choices[0].message.content || 'コメントが取得できませんでした。';
-// }
+ async function getAIComment(income: number, expense: number): Promise<string> {
+   const prompt = `
+ あなたは家計のアドバイザーです。今月の収入は${income}円、支出は${expense}円です。
+ 収支のバランスや節約のポイント、改善点などを踏まえて、ユーザーにわかりやすく具体的なアドバイスを一言で伝えてください。
+ `;
+   const completion = await openai.chat.completions.create({
+     messages: [{ role: 'user', content: prompt }],
+     model: 'gpt-4o',
+     max_tokens: 100,
+   });
+   return completion.choices[0].message.content || 'コメントが取得できませんでした。';
+ }
 
-async function getAIComment(income: number, expense: number): Promise<string> {
-  // API呼び出しなし、固定コメントを返すだけ
-  return Promise.resolve("これはテスト用のコメントです。API制限が解除されたら実際のコメントを取得します。");
-}
+//async function getAIComment(income: number, expense: number): Promise<string> {
+//  // API呼び出しなし、固定コメントを返すだけ
+//  return Promise.resolve("これはテスト用のコメントです。API制限が解除されたら実際のコメントを取得します。");
+//}
 
 // ===== TypeScriptの型定義 =====
 declare module 'express-session' {
