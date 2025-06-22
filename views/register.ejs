@@ -30,13 +30,20 @@
 <body>
     <header>
       <h1>登録ページ</h1>
-      <nav>
+      <nav class="top-nav">
+        <ul>
+          <li><a href="/dashboard">カレンダー</a></li>
+          <li><a href="/register">収入/支出登録</a></li>
+          <li><a href="/map">支出マップ</a></li>
+          <li><a href="/logout">ログアウト</a></li>
+        </ul>
         <% if (user) { %>
-            <a href="/dashboard">カレンダーに戻る</a> |
-            <a href="/map">支出マップ</a> |
-            <a href="/logout">ログアウト</a>
+          <div class="user-info">
+            <svg width="24" height="24" ...>...</svg>
+            <span><%= user.email %></span>
+          </div>
         <% } %>
-      </nav>
+      </nav>      
     </header>
     <main>
       <section class="form-section">
