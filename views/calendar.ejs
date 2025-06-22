@@ -54,7 +54,7 @@
       <form method="get" action="/dashboard">
         <label>年
           <select name="year">
-            <% for(let y=2020; y<=2030; y++) { %>
+            <% for(let y=2000; y<=2100; y++) { %>
               <option value="<%= y %>" <%= year === y ? 'selected' : '' %>><%= y %></option>
             <% } %>
           </select>
