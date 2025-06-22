@@ -444,16 +444,41 @@ app.get('/register', isAuthenticated, (req: Request, res: Response) => {
   })
 
   app.post('/register-paypay', isAuthenticated, upload.single('transactionPhoto'), (req: Request, res: Response) => {
-    const userId = req.session.user!.id;
-    const { type, date, amount, description, latitude, longitude, locationName } = req.body;
-    const photoFilename = req.file ? req.file.filename : null;
-    const stmt = db.prepare('INSERT INTO paypay (user_id, type, date, amount, description, photo_filename, latitude, longitude, location_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);')
-    stmt.bind([userId, type, date, parseFloat(amount), description, photoFilename, parseFloat(latitude) || null, parseFloat(longitude) || null, locationName])
-    stmt.step()
-    stmt.free()
-    saveDatabase()
-    res.redirect('/register')
-  })
+  const userId = req.session.user!.id;
+  const {
+    type, date, amount, description,
+    latitude, longitude, locationName,
+    recurringEndDate
+  } = req.body;
+
+  const photoFilename = req.file ? req.file.filename : null;
+
+  // type が 'サブスク' なら繰り返し回数を取得、なければ1回だけ
+  const monthsToRepeat = (type === 'サブスク') ? (parseInt(recurringEndDate) || 1) : 1;
+
+  const originalDate = new Date(date);
+
+  for (let i = 0; i < monthsToRepeat; i++) {
+    const repeatDate = new Date(originalDate);
+    repeatDate.setMonth(originalDate.getMonth() + i);
+    const dateStr = repeatDate.toISOString().split('T')[0];
+
+    const stmt = db.prepare(`
+      INSERT INTO paypay (user_id, type, date, amount, description, photo_filename, latitude, longitude, location_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.bind([
+      userId, type, dateStr, parseFloat(amount), description, photoFilename,
+      parseFloat(latitude) || null, parseFloat(longitude) || null, locationName
+    ]);
+    stmt.step();
+    stmt.free();
+  }
+
+  saveDatabase();
+  res.redirect('/register');
+});
+
 
   app.post('/register-comecome', isAuthenticated, upload.single('transactionPhoto'), (req: Request, res: Response) => {
     const userId = req.session.user!.id;

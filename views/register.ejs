@@ -96,6 +96,11 @@
               <option value="支出">その他支出</option>
             </select>
             <br>
+            <div id="recurring-section" style="display: none; margin-top: 1em;">
+              <label for="recurringMonths">何か月繰り返す？</label>
+              <input type="date" name="recurringEndDate" id="recurringEndDate" />
+            </div>
+            <br>
             <label for="paypay-amount">金額:</label>
             <input type="number" name="amount" placeholder="金額を入力" step="1" required>
             <br>
@@ -128,6 +133,25 @@
         </form>
       </section>
     </main>
+
+    <script>
+  // サブスク選択時だけ終了日を表示
+    const paypayType = document.getElementById('paypay-type');
+    const recurringSection = document.getElementById('recurring-section');
+
+    function toggleRecurringSection() {
+      if (paypayType.value === 'サブスク') {
+        recurringSection.style.display = 'block';
+      } else {
+        recurringSection.style.display = 'none';
+      }
+    }
+
+    paypayType.addEventListener('change', toggleRecurringSection);
+
+  // ページ読み込み時に初期状態を反映
+    document.addEventListener('DOMContentLoaded', toggleRecurringSection);
+    </script>
 
     <script>
       // 2つのフォームそれぞれに地図をセットアップする関数
