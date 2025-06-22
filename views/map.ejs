@@ -102,16 +102,32 @@
     /* 追加: AIコメントのスタイル */
     .ai-comment-map {
       text-align: center;
-      margin: 15px 0; /* 上下の余白 */
-      padding: 10px;
-      background-color: #e6f7ff; /* 薄い青の背景 */
-      border-radius: 8px;
-      border: 1px solid #91d5ff; /* 青系のボーダー */
-      color: #003a61; /* 濃い青のテキスト */
-      font-size: 1em;
-      font-style: italic;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin: 15px auto; /* 中央寄せのため左右をautoに */
+      padding: 20px; /* パディングを増やす */
+      background-color: #e8f5e9; /* 非常に薄い緑色 */
+      border-radius: 12px; /* 角をさらに丸く */
+      /* border: 1px solid #c8e6c9;  任意で薄い緑のボーダーを追加 */
+      color: #388e3c; /* 濃い緑のテキスト */
+      font-size: 1.1em; /* フォントサイズを少し大きく */
+      font-style: normal; /* イタリック体から標準に戻す */
+      font-weight: bold; /* フォントを太く */
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* シャドウを強める */
+      max-width: 80%; /* 最大幅を設定して中央寄せ効果を出す */
+      line-height: 1.6; /* 行の高さを調整 */
     }
+
+    /* ここにあった .info-window-image のCSS定義は削除しました。
+       代わりに /styles.css で定義されている .modal-transaction-photo を使用します。
+       もし /styles.css に定義がなければ、以下の内容を /styles.css に追加してください。
+       
+       .modal-transaction-photo {
+         max-width: 100px;
+         max-height: 100px;
+         margin-top: 10px;
+         border-radius: 5px;
+         object-fit: cover;
+       }
+    */
   </style>
 </head>
 <body>
@@ -183,13 +199,23 @@
           });
           markers.push(marker); // マーカーを配列に保存
 
-          // 情報ウィンドウのコンテンツ
+          // 情報ウィンドウのコンテンツを構築
           const displayAmount = `${Math.abs(tx.amount).toLocaleString()} 円`; 
+          let photoHtml = '';
+
+          // 写真のファイル名がある場合のみ画像タグを生成
+          if (tx.photo_filename) {
+            // 画像のパスは 'public/uploads' の下に保存されていると仮定
+            // Expressのstaticミドルウェアにより '/uploads/ファイル名' でアクセス可能
+            // クラス名をカレンダーと同じ 'modal-transaction-photo' に変更
+            photoHtml = `<img src="/uploads/${tx.photo_filename}" class="modal-transaction-photo" alt="取引写真"/>`;
+          }
 
           const infoWindowContent = `
             <div>
               <h3>${tx.location_name || '場所不明'}</h3>
               <p>${tx.description || tx.type}: ${displayAmount}</p>
+              ${photoHtml}
             </div>
           `;
           const infoWindow = new google.maps.InfoWindow({
