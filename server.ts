@@ -27,18 +27,15 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 // ==========================================================
-
 // OpenAIのインスタンス化 (OpenAIを全く使わないならコメントアウトするか削除)
 // const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY }); // 必要なければこの行もコメントアウト
 //AIを使わない場合は、以下の関数をコメントアウトまたは削除してください。
 // カレンダーページ用のAIコメント関数 (固定コメントを返すバージョン)
-async function getAICommentFromTransactionsWithComparison(
+async function getAICommentFromTransactions(
   income: number,
   expense: number,
   _paypays: Transaction[],
-  _comecomes: Transaction[],
-  _prevPaypays: Transaction[],
-  _prevComecomes: Transaction[]
+  _comecomes: Transaction[]
 ): Promise<string> {
   if (income === 0 && expense === 0) {
     return Promise.resolve("今月のデータがまだないみたい。入力を忘れてない？");
@@ -55,40 +52,6 @@ async function getAICommentFromTransactionsWithComparison(
   }
 }
 
-async function getTransactionsForLastMonth(
-  userId: number,
-  table: 'paypay' | 'comecome'
-): Promise<Transaction[]> {
-  // ダミーデータ（必要に応じて数値を調整してください）
-  return Promise.resolve([
-    {
-      id: 1,
-      user_id: userId,
-      type: 'expense',
-      date: '2024-05-15',
-      amount: 1200,
-      description: 'コンビニ',
-      photo_filename: undefined,
-      latitude: undefined,
-      longitude: undefined,
-      location_name: 'ローソン',
-      source_table: table,
-    },
-    {
-      id: 2,
-      user_id: userId,
-      type: 'expense',
-      date: '2024-05-20',
-      amount: 3000,
-      description: '交通費',
-      photo_filename: undefined,
-      latitude: undefined,
-      longitude: undefined,
-      location_name: '駅',
-      source_table: table,
-    },
-  ]);
-}
 // 地図ページ用のAIコメント関数 (固定コメントを返すバージョン)
 async function getAICommentForMap(transactions: Transaction[]): Promise<string> {
   // API呼び出しなし、固定コメントを返すだけ
@@ -102,39 +65,32 @@ async function getAICommentForMap(transactions: Transaction[]): Promise<string> 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // カレンダーページ用のAIコメント関数 (OpenAIを呼び出すバージョン)
-async function getAICommentFromTransactionsWithComparison(
+async function getAICommentFromTransactions(
   income: number,
   expense: number,
   paypays: Transaction[],
-  comecomes: Transaction[],
-  prevPaypays: Transaction[],
-  prevComecomes: Transaction[]
+  comecomes: Transaction[]
 ): Promise<string> {
   const currentTxs = [...paypays, ...comecomes];
-  const previousTxs = [...prevPaypays, ...prevComecomes];
-
   const currentSummary = summarizeTransactions(currentTxs);
-  const comparison = compareTransactionCategories(previousTxs, currentTxs);
 
   const prompt = `
-  あなたはフレンドリーな家計アドバイザーです。
-  難しい言葉は使わず、親しみやすい口調で話してください。
-  アドバイスはやさしく、フランクに、友達に話すように伝えてください。
+あなたはフレンドリーな家計アドバイザーです。
+難しい言葉は使わず、親しみやすい口調で話してください。
+アドバイスはやさしく、フランクに、友達に話すように伝えてください。
+端的に短く、わかりやすいコメントを一言でお願いします。
 
-  ■今月の収入：${income}円
-  ■今月の支出：${expense}円
+■今月の収入：${income}円
+■今月の支出：${expense}円
 
-  ■今月の支出カテゴリTOP:
-  ${currentSummary}
+■支出カテゴリTOP（多い順）:
+${currentSummary}
 
-  ■前月とのカテゴリ別支出比較:
-  ${comparison}
-
-  → これらを参考にして、ざっくばらんに一言アドバイスをください！
-  `;
+→ これらを参考にして、一言コメントをください！
+`;
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o', // または 'gpt-3.5-turbo'
+    model: 'gpt-4o',
     messages: [{ role: 'user', content: prompt }],
     max_tokens: 100,
   });
@@ -156,62 +112,7 @@ function summarizeTransactions(transactions: Transaction[]): string {
     .map(([category, amount]) => `- ${category}: ${amount.toFixed(0)}円`)
     .join('\n');
 }
-
-function compareTransactionCategories(
-  prev: Transaction[],
-  curr: Transaction[]
-): string {
-  const sumByCategory = (txs: Transaction[]): Record<string, number> => {
-    const totals: Record<string, number> = {};
-    txs.forEach(tx => {
-      const category = tx.description || tx.location_name || tx.type || '未分類';
-      totals[category] = (totals[category] || 0) + tx.amount;
-    });
-    return totals;
-  };
-
-  const prevTotals = sumByCategory(prev);
-  const currTotals = sumByCategory(curr);
-
-  const allCategories = new Set([
-    ...Object.keys(prevTotals),
-    ...Object.keys(currTotals),
-  ]);
-
-  const changes = Array.from(allCategories).map(category => {
-    const prevAmount = prevTotals[category] || 0;
-    const currAmount = currTotals[category] || 0;
-    const diff = currAmount - prevAmount;
-    const diffStr = diff === 0
-      ? '変化なし'
-      : diff > 0
-        ? `+${diff.toFixed(0)}円増`
-        : `${diff.toFixed(0)}円減`;
-    return `- ${category}: ${diffStr}`;
-  });
-
-  return changes.slice(0, 5).join('\n');
-}
-
-async function getTransactionsForLastMonth(userId: number, table: 'paypay' | 'comecome'): Promise<Transaction[]> {
-  const now = new Date();
-  const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0); // 月初 - 1日 = 前月末
-
-  const from = firstDayLastMonth.toISOString().split('T')[0];
-  const to = lastDayLastMonth.toISOString().split('T')[0];
-
-  const stmt = db.prepare(`
-    SELECT * FROM ${table} WHERE user_id = ? AND date BETWEEN ? AND ?
-  `);
-  const results: Transaction[] = [];
-  stmt.bind([userId, from, to]);
-  while (stmt.step()) {
-    const row = stmt.getAsObject() as unknown as Transaction;
-    results.push(row);
-  }
-  return results;
-}*/
+*/
 /*
 // 地図ページ用のAIコメント関数 (OpenAIを呼び出すバージョン)
 async function getAICommentForMap_OpenAI(transactions: Transaction[]): Promise<string> { // 名前を変えておく
@@ -510,18 +411,12 @@ async function main() {
 
     let aiComment = '';
 
-    // 前月のデータを取得する必要があります（DBから）
-    const prevPaypays = await getTransactionsForLastMonth(userId, 'paypay');
-    const prevComecomes = await getTransactionsForLastMonth(userId, 'comecome');
-
     if (!isNaN(income) && !isNaN(expense)) {
-      aiComment = await getAICommentFromTransactionsWithComparison(
+      aiComment = await getAICommentFromTransactions(
         income,
         expense,
         paypays,
         comecomes,
-        prevPaypays,
-        prevComecomes
       );
     }
     res.render('calendar', { balance, paypays, comecomes, currentDate, totalPaypay, totalComecome, aiComment });
