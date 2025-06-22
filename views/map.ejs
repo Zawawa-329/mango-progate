@@ -18,20 +18,20 @@
     }
 
     /* main要素にFlexboxを適用し、ヘッダー下の残りの高さを占める */
-    /* headerの高さに合わせて calc() の値を調整してください (例: headerの高さが60pxなら - 60px) */
     main {
-        display: flex; /* Flexboxを使って子要素を横並びにする（単一の地図コンテナが全幅を占めるため） */
-        height: calc(100vh - 60px); 
+        display: flex; /* Flexboxを使って子要素を横並びにする */
+        height: calc(100vh - 60px); /* headerの高さに合わせて calc() の値を調整してください (例: headerの高さが60pxなら - 60px) */
         overflow: hidden; /* はみ出した内容を隠す */
         margin-top: 0; /* mainがheaderのすぐ下にくるように */
     }
 
-    /* 地図コンテナがmainの全幅と高さを占める */
+    /* 地図コンテナがmainの幅と高さを占める */
     #map-container {
-        flex: 1; /* mainの全幅を占める (単一のflexアイテムとして) */
+        flex: 2; /* mainの幅の約2/3を占める */
         height: 100%; /* 親 (main) の高さ全体を使う */
         display: flex; /* h2と地図を縦に並べるため */
         flex-direction: column;
+        padding-right: 10px; /* リストとの間に少しスペースを設ける */
     }
 
     #map-container h2 {
@@ -43,6 +43,54 @@
     #map {
         height: 100%; /* 親コンテナ (map-container) の残りの高さ全体を使う */
         width: 100%;
+    }
+
+    /* 新しく追加する場所リストのコンテナ */
+    #location-list-container {
+        flex: 1; /* mainの幅の約1/3を占める */
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid #ccc; /* 地図との区切り線 */
+        padding-left: 10px;
+        box-sizing: border-box; /* paddingを含めて幅を計算 */
+        overflow-y: auto; /* 内容が多すぎる場合にスクロール可能にする */
+    }
+
+    #location-list-container h2 {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    #location-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    #location-list li {
+        background-color: #f9f9f9;
+        margin-bottom: 8px;
+        padding: 10px;
+        border-radius: 5px;
+        cursor: pointer; /* クリック可能であることを示す */
+        transition: background-color 0.2s ease;
+    }
+
+    #location-list li:hover {
+        background-color: #e9e9e9;
+    }
+
+    #location-list li h3 {
+        margin: 0 0 5px 0;
+        font-size: 1.1em;
+        color: #333;
+    }
+
+    #location-list li p {
+        margin: 0;
+        font-size: 0.9em;
+        color: #666;
     }
 
     /* ランキングコンテナは不要なため、CSS定義も削除 */
@@ -63,8 +111,8 @@
             <span><%= user.email %></span>
           </button>
           <div class="dropdown-content">
-            <a href="/dashboard">カレンダーに戻る</a> <!-— ★★★ この行を追加 ★★★ -->
-            <a href="/register">登録ページへ</a>
+            <a href="/dashboard">カレンダーに戻る</a>
+            <a href="/register">収入/支出登録</a>
             <a href="/logout">ログアウト</a>
           </div>
         </div>
@@ -77,10 +125,18 @@
       <h2>支出マップ</h2>
       <div id="map"></div>
     </div>
-    </main>
+    
+    <div id="location-list-container">
+      <h2>支出場所一覧</h2>
+      <ul id="location-list">
+        </ul>
+    </div>
+  </main>
 
   <script>
     let map; // Google Mapオブジェクトをグローバルに定義
+    const markers = []; // マーカーオブジェクトを格納する配列を追加
+    const infoWindows = []; // 情報ウィンドウオブジェクトを格納する配列を追加
 
     // 地図の初期化関数 (Google Maps APIのcallbackで呼び出される)
     function initMap() {
@@ -90,21 +146,29 @@
         zoom: 13,
       });
 
-      const transactions = <%- JSON.stringify(transactions) %>;
+      let transactions = <%- JSON.stringify(transactions) %>;
       
-      transactions.forEach(tx => {
-        // 支出の取引であるか、かつ緯度と経度が存在する場合のみマーカーを追加
-        const isExpense = tx.type.includes('支出') || tx.type.includes('expense') || tx.type.includes('サブスク') || tx.type.includes('単発');
+      // 支出の取引のみをフィルタリングし、金額の降順でソート
+      const expenseTransactions = transactions.filter(tx => {
+        return tx.type.includes('支出') || tx.type.includes('expense') || tx.type.includes('サブスク') || tx.type.includes('単発');
+      });
 
-        if (isExpense && tx.latitude && tx.longitude) {
+      expenseTransactions.sort((a, b) => b.amount - a.amount); // 金額の高い順にソート
+
+      const locationList = document.getElementById('location-list'); // 場所リストのUL要素を取得
+      
+      expenseTransactions.forEach((tx, index) => { // ソートされた配列をループ
+        if (tx.latitude && tx.longitude) { // 緯度と経度が存在する場合のみ
           const marker = new google.maps.Marker({
             position: { lat: tx.latitude, lng: tx.longitude },
             map: map,
             title: tx.location_name || '場所不明'
           });
+          markers.push(marker); // マーカーを配列に保存
 
           // 情報ウィンドウのコンテンツ
-          const displayAmount = tx.type.includes('支出') || tx.type.includes('expense') ? `－${tx.amount.toLocaleString()} 円` : `${tx.amount.toLocaleString()} 円`;
+          // ここを修正: Math.abs() で絶対値を取得し、マイナス記号をつけない
+          const displayAmount = `${Math.abs(tx.amount).toLocaleString()} 円`; 
 
           const infoWindowContent = `
             <div>
@@ -115,10 +179,30 @@
           const infoWindow = new google.maps.InfoWindow({
             content: infoWindowContent
           });
+          infoWindows.push(infoWindow); // 情報ウィンドウを配列に保存
 
           // マーカーをクリックしたときに情報ウィンドウを表示
           marker.addListener('click', () => {
+            // 他の情報ウィンドウを閉じる
+            infoWindows.forEach(iw => iw.close());
             infoWindow.open(map, marker);
+          });
+
+          // 場所リストのアイテムを作成
+          const listItem = document.createElement('li');
+          listItem.innerHTML = `
+            <h3>${tx.location_name || '場所不明'}</h3>
+            <p>${tx.description || tx.type}: <span style="font-weight: bold;">${displayAmount}</span></p>
+          `;
+          locationList.appendChild(listItem);
+
+          // リストアイテムがクリックされたときに、対応するマーカーの情報ウィンドウを開く
+          listItem.addEventListener('click', () => {
+            // 他の情報ウィンドウを閉じる
+            infoWindows.forEach(iw => iw.close());
+            infoWindow.open(map, marker);
+            map.setCenter(marker.getPosition()); // 地図の中心をマーカーに移動
+            map.setZoom(15); // 少しズームする
           });
         }
       });
