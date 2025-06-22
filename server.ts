@@ -32,11 +32,63 @@ const upload = multer({ storage: storage });
 // const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY }); // 必要なければこの行もコメントアウト
 //AIを使わない場合は、以下の関数をコメントアウトまたは削除してください。
 // カレンダーページ用のAIコメント関数 (固定コメントを返すバージョン)
-async function getAIComment(income: number, expense: number): Promise<string> {
-  // API呼び出しなし、固定コメントを返すだけ
-  return Promise.resolve("これはテスト用のコメントです。API制限が解除されたら実際のコメントを取得します。");
+async function getAICommentFromTransactionsWithComparison(
+  income: number,
+  expense: number,
+  _paypays: Transaction[],
+  _comecomes: Transaction[],
+  _prevPaypays: Transaction[],
+  _prevComecomes: Transaction[]
+): Promise<string> {
+  if (income === 0 && expense === 0) {
+    return Promise.resolve("今月のデータがまだないみたい。入力を忘れてない？");
+  }
+
+  const balance = income - expense;
+
+  if (balance > 0) {
+    return Promise.resolve("黒字だね！ちょっとご褒美買ってもいいかも🎉");
+  } else if (balance < 0) {
+    return Promise.resolve("支出が収入を超えちゃってるかも💦 少しだけ節約意識しよっか！");
+  } else {
+    return Promise.resolve("収支がちょうどピッタリ！すごいバランス感覚😳");
+  }
 }
 
+async function getTransactionsForLastMonth(
+  userId: number,
+  table: 'paypay' | 'comecome'
+): Promise<Transaction[]> {
+  // ダミーデータ（必要に応じて数値を調整してください）
+  return Promise.resolve([
+    {
+      id: 1,
+      user_id: userId,
+      type: 'expense',
+      date: '2024-05-15',
+      amount: 1200,
+      description: 'コンビニ',
+      photo_filename: undefined,
+      latitude: undefined,
+      longitude: undefined,
+      location_name: 'ローソン',
+      source_table: table,
+    },
+    {
+      id: 2,
+      user_id: userId,
+      type: 'expense',
+      date: '2024-05-20',
+      amount: 3000,
+      description: '交通費',
+      photo_filename: undefined,
+      latitude: undefined,
+      longitude: undefined,
+      location_name: '駅',
+      source_table: table,
+    },
+  ]);
+}
 // 地図ページ用のAIコメント関数 (固定コメントを返すバージョン)
 async function getAICommentForMap(transactions: Transaction[]): Promise<string> {
   // API呼び出しなし、固定コメントを返すだけ
@@ -44,31 +96,123 @@ async function getAICommentForMap(transactions: Transaction[]): Promise<string> 
 }
 //ここまでAIを使わない場合のコード
 
-
 // OpenAIを使いたくなった時のコード
 /*
 // OpenAIのインスタンス化
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // カレンダーページ用のAIコメント関数 (OpenAIを呼び出すバージョン)
-async function getAIComment_OpenAI(income: number, expense: number): Promise<string> { // 名前を変えておく
-   const prompt = `
- あなたは家計のアドバイザーです。今月の収入は${income}円、支出は${expense}円です。
- 収支のバランスや節約のポイント、改善点などを踏まえて、ユーザーにわかりやすく具体的なアドバイスを一言で伝えてください。
- `;
-   try {
-     const completion = await openai.chat.completions.create({
-       messages: [{ role: 'user', content: prompt }],
-       model: 'gpt-4o',
-       max_tokens: 100,
-     });
-     return completion.choices[0].message.content || 'コメントが取得できませんでした。';
-   } catch (error) {
-     console.error("OpenAI API Error (Dashboard):", error);
-     return "AIコメントの取得中にエラーが発生しました。後でもう一度お試しください。";
-   }
+async function getAICommentFromTransactionsWithComparison(
+  income: number,
+  expense: number,
+  paypays: Transaction[],
+  comecomes: Transaction[],
+  prevPaypays: Transaction[],
+  prevComecomes: Transaction[]
+): Promise<string> {
+  const currentTxs = [...paypays, ...comecomes];
+  const previousTxs = [...prevPaypays, ...prevComecomes];
+
+  const currentSummary = summarizeTransactions(currentTxs);
+  const comparison = compareTransactionCategories(previousTxs, currentTxs);
+
+  const prompt = `
+  あなたはフレンドリーな家計アドバイザーです。
+  難しい言葉は使わず、親しみやすい口調で話してください。
+  アドバイスはやさしく、フランクに、友達に話すように伝えてください。
+
+  ■今月の収入：${income}円
+  ■今月の支出：${expense}円
+
+  ■今月の支出カテゴリTOP:
+  ${currentSummary}
+
+  ■前月とのカテゴリ別支出比較:
+  ${comparison}
+
+  → これらを参考にして、ざっくばらんに一言アドバイスをください！
+  `;
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o', // または 'gpt-3.5-turbo'
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 100,
+  });
+
+  return completion.choices[0].message.content ?? "コメント取得に失敗しました。";
 }
 
+function summarizeTransactions(transactions: Transaction[]): string {
+  const categoryTotals: Record<string, number> = {};
+
+  transactions.forEach(tx => {
+    const category = tx.description || tx.location_name || tx.type || '未分類';
+    categoryTotals[category] = (categoryTotals[category] || 0) + tx.amount;
+  });
+
+  return Object.entries(categoryTotals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([category, amount]) => `- ${category}: ${amount.toFixed(0)}円`)
+    .join('\n');
+}
+
+function compareTransactionCategories(
+  prev: Transaction[],
+  curr: Transaction[]
+): string {
+  const sumByCategory = (txs: Transaction[]): Record<string, number> => {
+    const totals: Record<string, number> = {};
+    txs.forEach(tx => {
+      const category = tx.description || tx.location_name || tx.type || '未分類';
+      totals[category] = (totals[category] || 0) + tx.amount;
+    });
+    return totals;
+  };
+
+  const prevTotals = sumByCategory(prev);
+  const currTotals = sumByCategory(curr);
+
+  const allCategories = new Set([
+    ...Object.keys(prevTotals),
+    ...Object.keys(currTotals),
+  ]);
+
+  const changes = Array.from(allCategories).map(category => {
+    const prevAmount = prevTotals[category] || 0;
+    const currAmount = currTotals[category] || 0;
+    const diff = currAmount - prevAmount;
+    const diffStr = diff === 0
+      ? '変化なし'
+      : diff > 0
+        ? `+${diff.toFixed(0)}円増`
+        : `${diff.toFixed(0)}円減`;
+    return `- ${category}: ${diffStr}`;
+  });
+
+  return changes.slice(0, 5).join('\n');
+}
+
+async function getTransactionsForLastMonth(userId: number, table: 'paypay' | 'comecome'): Promise<Transaction[]> {
+  const now = new Date();
+  const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0); // 月初 - 1日 = 前月末
+
+  const from = firstDayLastMonth.toISOString().split('T')[0];
+  const to = lastDayLastMonth.toISOString().split('T')[0];
+
+  const stmt = db.prepare(`
+    SELECT * FROM ${table} WHERE user_id = ? AND date BETWEEN ? AND ?
+  `);
+  const results: Transaction[] = [];
+  stmt.bind([userId, from, to]);
+  while (stmt.step()) {
+    const row = stmt.getAsObject() as unknown as Transaction;
+    results.push(row);
+  }
+  return results;
+}*/
+/*
 // 地図ページ用のAIコメント関数 (OpenAIを呼び出すバージョン)
 async function getAICommentForMap_OpenAI(transactions: Transaction[]): Promise<string> { // 名前を変えておく
   const expenseTransactions = transactions.filter(tx =>
@@ -113,6 +257,8 @@ ${locationSummary}
 - 地図を見ているユーザーに語りかけるような言葉遣い。
 - ポジティブで行動を促す表現を使う。
 - 長すぎず、簡潔にまとめる。
+-難しい言葉は使わず、親しみやすい口調で話してください。
+-アドバイスはやさしく、フランクに、友達に話すように伝えてください。
 `;
 
   try {
@@ -359,15 +505,24 @@ async function main() {
 
     const rawIncome = totalComecome;
     const rawExpense = totalPaypay;
-
-    // 明示的に number 型に変換（null や undefined の場合は 0 にする）
     const income = typeof rawIncome === 'number' ? rawIncome : Number(rawIncome) || 0;
     const expense = typeof rawExpense === 'number' ? rawExpense : Number(rawExpense) || 0;
 
     let aiComment = '';
 
+    // 前月のデータを取得する必要があります（DBから）
+    const prevPaypays = await getTransactionsForLastMonth(userId, 'paypay');
+    const prevComecomes = await getTransactionsForLastMonth(userId, 'comecome');
+
     if (!isNaN(income) && !isNaN(expense)) {
-      aiComment = await getAIComment(income, expense);
+      aiComment = await getAICommentFromTransactionsWithComparison(
+        income,
+        expense,
+        paypays,
+        comecomes,
+        prevPaypays,
+        prevComecomes
+      );
     }
     res.render('calendar', { balance, paypays, comecomes, currentDate, totalPaypay, totalComecome, aiComment });
   });
