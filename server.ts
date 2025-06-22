@@ -1,16 +1,16 @@
-// ===== ライブラリのインポート =====
-import express, { Request, Response, NextFunction } from 'express'
+/// ===== ライブラリのインポート =====
+import express, { Request, Response, NextFunction } from 'express';
 import session from 'express-session';
 import bcrypt from 'bcrypt';
 import multer from 'multer';
 import OpenAI from 'openai';
 // =====================================
 
-import path from 'path'
-import fs from 'fs'
-import initSqlJs, { Database, SqlJsStatic } from 'sql.js'
-import dotenv from 'dotenv'
-dotenv.config()
+import path from 'path';
+import fs from 'fs';
+import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
 // ===== multerの設定: ファイルの保存場所とファイル名を定義 =====
 const storage = multer.diskStorage({
@@ -28,26 +28,140 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 // ==========================================================
 
+// OpenAIのインスタンス化 (OpenAIを全く使わないならコメントアウトするか削除)
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY }); // 必要なければこの行もコメントアウト
+//AIを使わない場合は、以下の関数をコメントアウトまたは削除してください。
+// カレンダーページ用のAIコメント関数 (固定コメントを返すバージョン)
+async function getAIComment(income: number, expense: number): Promise<string> {
+  // API呼び出しなし、固定コメントを返すだけ
+  return Promise.resolve("これはテスト用のコメントです。API制限が解除されたら実際のコメントを取得します。");
+}
 
- const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// 地図ページ用のAIコメント関数 (固定コメントを返すバージョン)
+async function getAICommentForMap(transactions: Transaction[]): Promise<string> {
+  // API呼び出しなし、固定コメントを返すだけ
+  return Promise.resolve("これはテスト用のコメントです。API制限が解除されたら実際のコメントを取得します。");
+}
+//ここまでAIを使わない場合のコード
 
- async function getAIComment(income: number, expense: number): Promise<string> {
+
+// OpenAIを使いたくなった時のコード
+/*
+// OpenAIのインスタンス化
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// カレンダーページ用のAIコメント関数 (OpenAIを呼び出すバージョン)
+async function getAIComment_OpenAI(income: number, expense: number): Promise<string> { // 名前を変えておく
    const prompt = `
  あなたは家計のアドバイザーです。今月の収入は${income}円、支出は${expense}円です。
  収支のバランスや節約のポイント、改善点などを踏まえて、ユーザーにわかりやすく具体的なアドバイスを一言で伝えてください。
  `;
-   const completion = await openai.chat.completions.create({
-     messages: [{ role: 'user', content: prompt }],
-     model: 'gpt-4o',
-     max_tokens: 100,
-   });
-   return completion.choices[0].message.content || 'コメントが取得できませんでした。';
- }
+   try {
+     const completion = await openai.chat.completions.create({
+       messages: [{ role: 'user', content: prompt }],
+       model: 'gpt-4o',
+       max_tokens: 100,
+     });
+     return completion.choices[0].message.content || 'コメントが取得できませんでした。';
+   } catch (error) {
+     console.error("OpenAI API Error (Dashboard):", error);
+     return "AIコメントの取得中にエラーが発生しました。後でもう一度お試しください。";
+   }
+}
 
-//async function getAIComment(income: number, expense: number): Promise<string> {
-//  // API呼び出しなし、固定コメントを返すだけ
-//  return Promise.resolve("これはテスト用のコメントです。API制限が解除されたら実際のコメントを取得します。");
-//}
+// 地図ページ用のAIコメント関数 (OpenAIを呼び出すバージョン)
+async function getAICommentForMap_OpenAI(transactions: Transaction[]): Promise<string> { // 名前を変えておく
+  const expenseTransactions = transactions.filter(tx =>
+    tx.type.includes('支出') || tx.type.includes('expense') || tx.type.includes('サブスク') || tx.type.includes('単発')
+  );
+
+  if (expenseTransactions.length === 0) {
+    return "今月の支出データが見つかりません。新しい支出を記録してみましょう！";
+  }
+
+  const locationExpenses: { [key: string]: number } = {};
+  expenseTransactions.forEach(tx => {
+    const location = tx.location_name || '場所不明';
+    locationExpenses[location] = (locationExpenses[location] || 0) + tx.amount;
+  });
+
+  const sortedLocations = Object.entries(locationExpenses)
+    .sort(([, amountA], [, amountB]) => amountB - amountA)
+    .slice(0, 3);
+
+  let locationSummary = '';
+  if (sortedLocations.length > 0) {
+    locationSummary = '特に支出が多かった場所は、';
+    sortedLocations.forEach(([loc, amount], index) => {
+      locationSummary += `${loc} (${amount.toLocaleString()}円)${index < sortedLocations.length - 1 ? '、' : ''}`;
+    });
+    locationSummary += 'です。';
+  }
+
+  const totalExpense = expenseTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+
+  const prompt = `
+あなたは地図上で家計を分析するアドバイザーです。
+ユーザーの今月の総支出は約${totalExpense.toLocaleString()}円です。
+${locationSummary}
+
+これらの情報に基づき、ユーザーにわかりやすく具体的なアドバイスを一言で伝えてください。
+以下のような点を考慮してください：
+- 特定の場所での支出が多いことについてコメントする。
+- 全体的な支出の傾向について言及する。
+- 節約や支出管理のヒントを提供する。
+- 地図を見ているユーザーに語りかけるような言葉遣い。
+- ポジティブで行動を促す表現を使う。
+- 長すぎず、簡潔にまとめる。
+`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'gpt-4o',
+      max_tokens: 150,
+    });
+    return completion.choices[0].message.content || 'コメントが取得できませんでした。';
+  } catch (error) {
+    console.error("OpenAI API Error (Map):", error);
+    return "地図データに基づくAIコメントの取得中にエラーが発生しました。";
+  }
+}
+*/ 
+//
+
+
+  /* 全支出合計
+  const totalExpense = expenseTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+
+  const prompt = `
+あなたは地図上で家計を分析するアドバイザーです。
+ユーザーの今月の総支出は約${totalExpense.toLocaleString()}円です。
+${locationSummary}
+
+これらの情報に基づき、ユーザーにわかりやすく具体的なアドバイスを一言で伝えてください。
+以下のような点を考慮してください：
+- 特定の場所での支出が多いことについてコメントする。
+- 全体的な支出の傾向について言及する。
+- 節約や支出管理のヒントを提供する。
+- 地図を見ているユーザーに語りかけるような言葉遣い。
+- ポジティブで行動を促す表現を使う。
+- 長すぎず、簡潔にまとめる。
+`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'gpt-4o', // または 'gpt-3.5-turbo' など
+      max_tokens: 150, // マップ用は少し長めでも良いかもしれない
+    });
+    return completion.choices[0].message.content || 'コメントが取得できませんでした。';
+  } catch (error) {
+    console.error("OpenAI API Error (Map):", error);
+    return "地図データに基づくAIコメントの取得中にエラーが発生しました。";
+  }
+}*/
+// ここまでだよ！！
 
 // ===== TypeScriptの型定義 =====
 declare module 'express-session' {
@@ -214,15 +328,15 @@ async function main() {
     
     while (paypaysStmt.step()) { 
       const tx = paypaysStmt.getAsObject() as Transaction; 
-      paypays.push({ ...tx, source_table: 'paypay' }); // ★★★ 修正箇所: ここを追加 ★★★
+      paypays.push({ ...tx, source_table: 'paypay' }); 
     }
-    paypaysStmt.free()
+    paypaysStmt.free();
     
     while (comecomesStmt.step()) { 
       const tx = comecomesStmt.getAsObject() as Transaction; 
-      comecomes.push({ ...tx, source_table: 'comecome' }); // ★★★ 修正箇所: ここを追加 ★★★
+      comecomes.push({ ...tx, source_table: 'comecome' }); 
     }
-    comecomesStmt.free()
+    comecomesStmt.free();
 
     const yearMonth = `${year}-${String(month).padStart(2, '0')}`;
 
@@ -254,9 +368,9 @@ async function main() {
 
     if (!isNaN(income) && !isNaN(expense)) {
       aiComment = await getAIComment(income, expense);
-}
-    res.render('calendar', { balance, paypays, comecomes, currentDate,totalPaypay,  totalComecome,aiComment })
-  })
+    }
+    res.render('calendar', { balance, paypays, comecomes, currentDate, totalPaypay, totalComecome, aiComment });
+  });
 
 app.get('/register', isAuthenticated, (req: Request, res: Response) => {
   const userId = req.session.user!.id;
@@ -401,7 +515,7 @@ app.get('/register', isAuthenticated, (req: Request, res: Response) => {
     res.redirect('/dashboard')
   })
 
-  // ★★★ 追加する /map ルート ★★★
+  // ★★★ /map ルート ★★★
   app.get('/map', isAuthenticated, async (req: Request, res: Response) => {
     const userId = req.session.user!.id;
     try {
@@ -414,7 +528,7 @@ app.get('/register', isAuthenticated, (req: Request, res: Response) => {
       const paypays: Transaction[] = [];
       while (paypaysStmt.step()) {
         const tx = paypaysStmt.getAsObject() as Transaction;
-        paypays.push({ ...tx, source_table: 'paypay' }); // ★★★ 修正箇所: ここを追加 ★★★
+        paypays.push({ ...tx, source_table: 'paypay' }); 
       }
       paypaysStmt.free();
 
@@ -426,13 +540,19 @@ app.get('/register', isAuthenticated, (req: Request, res: Response) => {
       const comecomes: Transaction[] = [];
       while (comecomesStmt.step()) {
         const tx = comecomesStmt.getAsObject() as Transaction;
-        comecomes.push({ ...tx, source_table: 'comecome' }); // ★★★ 修正箇所: ここを追加 ★★★
+        comecomes.push({ ...tx, source_table: 'comecome' }); 
       }
       comecomesStmt.free();
 
       const allTransactions = [...paypays, ...comecomes];
+      let aiCommentForMap = '';
+      if (allTransactions.length > 0) { // 取引データがある場合のみAIコメントを生成
+        aiCommentForMap = await getAICommentForMap(allTransactions);
+      } else {
+        aiCommentForMap = "支出データがありません。支出を記録して、マップで分析してみましょう！";
+      }
 
-      res.render('map', { user: req.session.user, transactions: allTransactions });
+      res.render('map', { user: req.session.user, transactions: allTransactions, aiCommentForMap: aiCommentForMap });
 
     } catch (error) {
       console.error('Error fetching transactions for map:', error);

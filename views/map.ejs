@@ -25,7 +25,7 @@
         margin-top: 0; /* mainがheaderのすぐ下にくるように */
     }
 
-
+    /* 地図コンテナがmainの幅と高さを占める */
     #map-container {
         flex: 2; /* mainの幅の約2/3を占める */
         height: 100%; /* 親 (main) の高さ全体を使う */
@@ -98,6 +98,20 @@
     #ranking-container {
       display: none; 
     }
+    
+    /* 追加: AIコメントのスタイル */
+    .ai-comment-map {
+      text-align: center;
+      margin: 15px 0; /* 上下の余白 */
+      padding: 10px;
+      background-color: #e6f7ff; /* 薄い青の背景 */
+      border-radius: 8px;
+      border: 1px solid #91d5ff; /* 青系のボーダー */
+      color: #003a61; /* 濃い青のテキスト */
+      font-size: 1em;
+      font-style: italic;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 <body>
@@ -112,7 +126,7 @@
           </button>
           <div class="dropdown-content">
             <a href="/dashboard">カレンダーに戻る</a>
-            <a href="/register">収入/支出登録</a>
+            <a href="/register">登録ページへ</a>
             <a href="/logout">ログアウト</a>
           </div>
         </div>
@@ -123,6 +137,9 @@
   <main>
     <div id="map-container">
       <h2>支出マップ</h2>
+      <% if (aiCommentForMap) { %>
+        <p class="ai-comment-map"><%= aiCommentForMap %></p>
+      <% } %>
       <div id="map"></div>
     </div>
     
@@ -167,7 +184,6 @@
           markers.push(marker); // マーカーを配列に保存
 
           // 情報ウィンドウのコンテンツ
-          // ここを修正: Math.abs() で絶対値を取得し、マイナス記号をつけない
           const displayAmount = `${Math.abs(tx.amount).toLocaleString()} 円`; 
 
           const infoWindowContent = `
