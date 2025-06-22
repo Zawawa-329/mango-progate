@@ -317,3 +317,18 @@ h2 {
   line-height: 1.6;
 }
 
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.warning-message {
+  margin-top: 0.5em;
+  background-color: #ffcccc;
+  color: #a60000;
+  padding: 1em;
+  font-weight: bold;
+  font-size: 1.2em;
+  text-align: center;
+  animation: blink 1s infinite;
+}
