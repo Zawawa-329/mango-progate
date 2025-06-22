@@ -133,18 +133,17 @@
 <body>
   <header>
     <h1><a href="/dashboard">Limit Kakeibo</a></h1>
-    <nav>
+    <nav class="top-nav">
+      <ul style="list-style: none; padding: 0; margin: 0;">
+        <li><a href="/dashboard">カレンダー</a></li>
+        <li><a href="/register">収入/支出登録</a></li>
+        <li><a href="/map">支出マップ</a></li>
+        <li><a href="/logout">ログアウト</a></li>
+      </ul>      
       <% if (user) { %>
-        <div class="dropdown">
-          <button class="dropdown-toggle">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 8px;"><path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z" fill="white"/></svg>
-            <span><%= user.email %></span>
-          </button>
-          <div class="dropdown-content">
-            <a href="/dashboard">カレンダーに戻る</a>
-            <a href="/register">登録ページへ</a>
-            <a href="/logout">ログアウト</a>
-          </div>
+        <div class="user-info">
+          <svg width="24" height="24" ...>...</svg>
+          <span><%= user.email %></span>
         </div>
       <% } %>
     </nav>
