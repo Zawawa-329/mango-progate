@@ -1,3 +1,4 @@
+,
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -24,10 +25,10 @@
     </nav>
     <p class="balance-display">
       <% if (balance && typeof balance.balance !== 'undefined') { %>
-        現在の残高: <span class="amount"><%= balance.balance %></span> 円
+        現在の口座残高: <span class="amount"><%= balance.balance %></span> 円
         <span class="date">（<%= new Date(balance.updated_at).toLocaleString() %> 時点）</span>
       <% } else { %>
-        現在の残高は登録されていません
+        現在の口座残高は登録されていません
       <% } %>
     </p>
   </header>
