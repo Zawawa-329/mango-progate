@@ -35,10 +35,10 @@
 
   <main>
     <%
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-      
-      const allTransactions = [...paypays, ...comecomes];
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        
+        const allTransactions = [...paypays, ...comecomes];
 
       function isThisMonth(dateStr) { const d = new Date(dateStr); return d.getFullYear() === year && d.getMonth() === month; }
       function isIncome(t) { return t.type.includes('収入') || t.type.includes('入金') || t.type.includes('income') || t.type.includes('お小遣い') || t.type.includes('バイト'); }
@@ -76,6 +76,15 @@
         <span style="margin-right:1.5em;">支出合計: <span class="amount expense"><%= expenseSum %></span> 円</span>
         <span>差額: <span class="amount <%= diff >= 0 ? 'positive-diff' : 'negative-diff' %>"><%= diff %></span> 円</span>
       </div>
+
+      
+  <% if (diff < 0) { %>
+    <div class="warning-message" style="margin-top: 1em; background-color: #ffcccc; color: #a60000; padding: 1em;  font-weight: bold; font-size: 1.2em; text-align: center;">
+    　⚠️Warning ⚠️Warning ⚠️Warning ⚠️Warning ⚠️Warning ⚠️   <br />お金を使いすぎです
+    </div>
+  <% } %>
+</div>
+
 
       <div class="calendar-grid">
         <% const daysOfWeek = ['日', '月', '火', '水', '木', '金', '土']; %>
