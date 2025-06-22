@@ -16,8 +16,8 @@
             <span><%= user.email %></span>
           </button>
           <div class="dropdown-content">
-            <a href="/register">登録ページへ</a>
-            <a href="/map">地図で見る</a>
+            <a href="/register">収入/支出登録</a>
+            <a href="/map">支出マップ</a>
             <a href="/logout">ログアウト</a>
           </div>
         </div>
@@ -166,7 +166,7 @@
         const dailyTransactions = allTransactionsForModal.filter(t => t.date && t.date.startsWith(dateStr));
 
         // モーダルの日付タイトルを設定
-        modalDate.textContent = `${new Date(dateStr).toLocaleDateString()} の取引詳細`;
+        modalDate.textContent = `${new Date(dateStr).toLocaleDateString()} の詳細`;
 
         // モーダルの内容を生成
         modalContent.innerHTML = ''; // 一旦空にする
@@ -186,7 +186,7 @@
                   ${tx.photo_filename ? `<img src="/uploads/${tx.photo_filename}" class="modal-transaction-photo">` : ''}
                   <div>
                     ${tx.location_name ? `<p class="transaction-location">📍${tx.location_name}</p>` : ''}
-                    <a href="/${tx.source_table === 'paypay' ? 'edit-paypay' : 'edit-comecome'}/${tx.id}">この取引を編集</a>
+                    <a href="/${tx.source_table === 'paypay' ? 'edit-paypay' : 'edit-comecome'}/${tx.id}">編集</a>
                    <a href="/${tx.source_table === 'paypay' ? 'delete-paypay' : 'delete-comecome'}/${tx.id}" onclick="return confirm('本当に削除しますか？');" style="color: #d9534f;">削除</a>
                   </div>
                 </div>
@@ -195,7 +195,7 @@
             modalContent.innerHTML += transactionHtml;
           });
         } else {
-          modalContent.innerHTML = '<p>この日の取引はありません。</p>';
+          modalContent.innerHTML = '<p>この日の収入/支出はありません。</p>';
         }
 
         // モーダルを表示
