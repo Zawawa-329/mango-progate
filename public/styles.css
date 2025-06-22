@@ -332,3 +332,33 @@ h2 {
   text-align: center;
   animation: blink 1s infinite;
 }
+
+.top-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+}
+
+.top-nav li {
+  display: inline-block;
+  margin-right: 1em;
+}
+
+.top-nav a {
+  color: #228B22;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.top-nav a {
+  color: #228B22; /* 例：残高の色 */
+  text-decoration: none;
+  transition: color 0.3s ease, transform 0.3s ease;
+  display: inline-block; /* transformを効かせるためにinline-block推奨 */
+}
+
+.top-nav a:hover {
+  color: #1E90FF; /* ホバー時は青 */
+  transform: scale(1.2); /* 1.2倍に拡大 */
+}
