@@ -104,3 +104,23 @@ button:active {
   background-color: #5b9673; /* 押下時の濃い緑 */
   transform: scale(0.98);
 }
+.top-nav ul {
+  display: flex;
+  justify-content: center;
+  gap: 1.5em;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.top-nav a {
+  color: #fbfcfb;
+  text-decoration: none;
+  transition: color 0.3s ease, transform 0.3s ease;
+  display: inline-block; /* transformを効かせるためにinline-block推奨 */
+}
+
+.top-nav a:hover {
+  color: #1E90FF; /* ホバー時は青 */
+  transform: scale(1.2); /* 1.2倍に拡大 */
+}
